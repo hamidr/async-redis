@@ -5,6 +5,8 @@
 #include <memory>
 #include <tuple>
 
+#include "network/unix_socket.hpp"
+
 namespace async_redis {
   namespace redis_impl
   {
@@ -13,7 +15,7 @@ namespace async_redis {
     template<typename InputOutputHandler, typename SocketType, typename ParserPolicy>
     class connection
     {
-      using event_watcher_t = std::unique_ptr<typename InputOutputHandler::event_watcher>;
+      using event_watcher_t = typename InputOutputHandler::event_watcher_t;
 
     public:
       using parser_t        = typename ParserPolicy::parser;
@@ -21,7 +23,7 @@ namespace async_redis {
 
       connection(InputOutputHandler &event_loop)
         : event_loop_(event_loop) {
-        socket_ = std::make_shared<SocketType>();
+        socket_ = std::make_shared<SocketType>(event_loop);
       }
 
       template<typename ...Args>
@@ -30,7 +32,7 @@ namespace async_redis {
       }
 
       ~connection() {
-        event_loop_.disconnect(*socket_);
+        // event_loop_.disconnect(*socket_);
       }
 
       bool is_connected() const
@@ -44,7 +46,7 @@ namespace async_redis {
         // LOG_THIS
         auto receiver = std::bind(&connection::reply_received, this, std::placeholders::_1, std::placeholders::_2);
 
-        auto &&watcher = socket_->async_write_then_read(event_loop_, command, receiver);
+        auto &&watcher = socket_->async_write_then_read(command, receiver);
 
         req_queue_.emplace(std::move(watcher), reply_cb, nullptr);
       }
@@ -57,7 +59,7 @@ namespace async_redis {
           auto& request = req_queue_.front();
 
           //TODO: Delete this line
-          auto &result = std::get<0>(request);
+          auto &watcher = std::get<0>(request);
 
           auto &cb = std::get<1>(request);
           auto &parser = std::get<2>(request);
@@ -76,6 +78,7 @@ namespace async_redis {
               //Log stuffs!
             }
 
+            event_loop_.stop(watcher);
             req_queue_.pop(); //free the resources
           }
         }

@@ -1,39 +1,16 @@
 #pragma once
 
-#include <stdlib.h>
 #include <string>
 #include <memory>
 #include <functional>
-#include <queue>
 #include <iostream>
-#include <mutex>
-#include <thread>
-#include <array>
-#include <list>
-#include <numeric>
 #include <sstream>
 #include <unordered_map>
 
-#include <ev.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <errno.h>
-#include <sys/fcntl.h> // fcntl
-#include <unistd.h> // close
-#include <netinet/in.h>
-#include <arpa/inet.h>
+namespace async_redis {
+  namespace tcp_server {
 
-// #define LOG_THIS printf("%s\n", __PRETTY_FUNCTION__);
-#define LOG_THIS ;
-
-#define LOG_ME(x) std::cout << x << std::endl;
-// #define LOG_ME(x) ;
-
-
-namespace async_redis
-{
-  namespace tcp_server
-  {
+  using std::string;
   class test_parser
   {
   public:
@@ -44,8 +21,6 @@ namespace async_redis
     }
 
     int append_chunk(const char* chunk, ssize_t length, bool &is_finished) {
-      LOG_THIS;
-
       is_finished = true;
       return length;
     }
@@ -56,30 +31,28 @@ namespace async_redis
   class tcp_server
   {
   public:
-    using parser_t        = typename ParserPolicy::parser;
-    using receive_cb_t      = std::function<void (parser_t)>;
+    using parser_t     = typename ParserPolicy::parser;
+    using receive_cb_t = std::function<void (parser_t)>;
+    using tcp_socket   = async_redis::network::tcp_socket<InputOutputHandler>;
 
     tcp_server(InputOutputHandler &event_loop)
       : loop_(event_loop) {
-      listener_ = std::make_shared<tcp_socket>();
+      listener_ = std::make_shared<tcp_socket>(event_loop);
     }
 
     void listen(int port) {
       if (!listener_->bind("127.0.0.1", port) || !listener_->listen())
         throw;
-      LOG_THIS;
 
       auto receiver = std::bind(&tcp_server::accept, this, std::placeholders::_1);
-      listener_watcher_ = listener_->async_accept<InputOutputHandler, tcp_socket>(loop_, receiver);
+      listener_watcher_ = listener_->template async_accept<tcp_socket>(receiver);
     }
 
     void accept(std::shared_ptr<tcp_socket> socket) {
-      LOG_THIS;
-
       auto receiver = std::bind(&tcp_server::chunk_received, this, std::placeholders::_1, std::placeholders::_2, socket);
-      auto&& watcher = socket->async_read(loop_, receiver);
+      socket->async_read(receiver);
 
-      conns_.emplace(socket, std::make_tuple(nullptr, std::move(watcher)));
+      conns_.emplace(socket, nullptr);
     }
 
     void data_received(parser_t& data) {
@@ -88,7 +61,6 @@ namespace async_redis
 
   private:
     void chunk_received(const char* data, ssize_t len, std::shared_ptr<tcp_socket>& socket) {
-      LOG_THIS;
       ssize_t acc = 0;
       bool is_finished = false;
 
@@ -97,14 +69,11 @@ namespace async_redis
         return;
       }
 
-      write_watcher_ = socket->async_write(loop_, "hello world!", [this, &socket]() {
-          event_watcher_t w;
-          w.swap(write_watcher_);
-
-          loop_.async_timeout(1, [this, &socket]() {
-              conns_.erase(socket);
-            });
+      socket->async_write("hello world!", [this, &socket]() {
+        loop_.async_timeout(1, [this, &socket]() {
+          conns_.erase(socket);
         });
+      });
 
     }
 
@@ -116,7 +85,7 @@ namespace async_redis
     InputOutputHandler& loop_;
     event_watcher_t listener_watcher_;
     event_watcher_t write_watcher_;
-    std::unordered_map<socket_t, std::tuple<parser_t, event_watcher_t>> conns_;
+    std::unordered_map<socket_t, parser_t> conns_;
   };
 
   }
