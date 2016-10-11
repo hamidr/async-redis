@@ -23,7 +23,6 @@ namespace async_redis {
       {}
 
       int connect(const string& path) {
-        ::unlink(path.data());
         struct sockaddr_un addr = {0};
         addr.sun_family = AF_UNIX;
         strcpy(addr.sun_path, path.data());
@@ -33,6 +32,8 @@ namespace async_redis {
       }
 
       bool bind(const string& path) {
+        ::unlink(path.data());
+
         struct sockaddr_un addr = {0};
         addr.sun_family = AF_UNIX;
         strcpy(addr.sun_path, path.data());

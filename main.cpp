@@ -11,8 +11,8 @@
 int main(int argc, char** args)
 {
    async_redis::event_loop::event_loop_ev loop;
-   // using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::unix_socket<decltype(loop)>>;
-   using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::tcp_socket<decltype(loop)>>;
+   using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::unix_socket<decltype(loop)>>;
+   // using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::tcp_socket<decltype(loop)>>;
 
    std::unique_ptr<redis_client_t> client_ptr;
 
@@ -21,7 +21,7 @@ int main(int argc, char** args)
    server.listen(9080);
 
    try {
-     client_ptr = std::make_unique<redis_client_t>(loop, 4);
+     client_ptr = std::make_unique<redis_client_t>(loop, 1);
    }
    catch(...) {
      std::cerr << "We are so fucked! So fucking fucked!" << std::endl;
@@ -39,10 +39,20 @@ int main(int argc, char** args)
        return;
      }
 
+     client.set("h1", "value1", [&](parser_t paresed) {
+         // std::cout << paresed->to_string() << std::endl;
+         client.get("h1", [&](parser_t p) {
+             // std::cout << p->to_string() << std::endl;
+             client.set("h2", "fooooo", [](parser_t p2) {
+                 // std::cout << p2->to_string() << std::endl;
+               });
+           });
+       });
 
-   for(int i = 0; i< 10; ++i)
+
+   for(int i = 0; i< 2; ++i)
    client.get("hamid", [&](parser_t parsed) {
-       std::cout <<"get hamid =>" << parsed->to_string()<< std::endl;
+       // std::cout <<"get hamid =>" << parsed->to_string() << std::endl;
 
        for(int i = 0; i< 10; ++i)
          client.get("hamid", [&](parser_t parsed) {
@@ -132,7 +142,7 @@ int main(int argc, char** args)
      };
 
    // client.connect(connect, "127.0.0.1", 6379);
-   // client.connect(connect, "/tmp/redis.sock");
+   client.connect(connect, "/tmp/redis.sock");
 
    loop.run();
 

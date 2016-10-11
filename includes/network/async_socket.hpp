@@ -59,53 +59,62 @@ namespace async_redis {
     template <typename InputOutputHanler>
     class async_socket_t : public async_socket
     {
-      using event_watcher_t = typename InputOutputHanler::event_watcher_t;
+      using socket_identifier_t  = typename InputOutputHanler::socket_identifier_t;
 
     public:
       async_socket_t(InputOutputHanler& io)
         : io_(io)
-      {
-      }
+      { }
 
       async_socket_t(InputOutputHanler &io, int fd)
         : io_(io)
       {
         fd_ = fd;
         is_connected_ = true;
-      }
 
+        id_ = io_.watch(fd_, *this);
+      }
 
       inline ~async_socket_t() {
-        // io_.remove(fd_, *this);
         close();
+        io_.unwatch(id_);
       }
 
       inline
-      event_watcher_t async_write(const string& data, const ready_cb_t& cb)
-      {
-        return io_.async_write(fd_, *this, data, cb);
+      void async_write(const string& data, const ready_cb_t& cb) {
+        return io_.async_write(id_, data, cb);
       }
 
       inline
-      event_watcher_t async_write_then_read(const string& data, const recv_cb_t& cb)
-      {
+      void async_write_then_read(const string& data, const recv_cb_t& cb) {
         return this->async_write(data, [&, cb]() {
             this->async_read(cb);
           });
       }
 
       inline
-      event_watcher_t async_read(const recv_cb_t& cb)
+      void async_read(const recv_cb_t& cb) {
+        return io_.async_read(id_, cb);
+      }
+
+      template <typename SocketType, typename... Args>
+      void async_connect(async_socket::connect_handler_t handler, Args... args)
       {
-        return io_.async_read(fd_, *this, cb);
+        io_.async_timeout(0.1, [this, args..., handler]() {
+            if (-1 == static_cast<SocketType&>(*this).connect(args...))
+              return this->async_connect<SocketType>(handler, args...);
+
+            handler(is_connected());
+          });
       }
 
       template<typename SocketType>
-      event_watcher_t async_accept(const std::function<void(std::shared_ptr<SocketType>)>& cb)
+      void async_accept(const std::function<void(std::shared_ptr<SocketType>)>& cb)
       {
-        return async_read([&, cb](const char* data, int len){
+        return async_read([&, cb](const char* data, int len) {
             int fd = this->accept();
             cb(std::make_shared<SocketType>(io_, fd));
+            this->async_accept(cb);
           });
       }
 
@@ -121,6 +130,8 @@ namespace async_redis {
 
         if (-1 == fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK))
           throw nonblocking_socket_exception();
+
+        id_ = io_.watch(fd_, *this);
       }
 
       int connect_to(socket_t* socket_addr, int len) {
@@ -135,10 +146,10 @@ namespace async_redis {
         return ::bind(fd_, socket_addr, len);
       }
 
-
     private:
       bool is_connected_ = false;
       InputOutputHanler& io_;
+      socket_identifier_t id_;
     };
   }
 }

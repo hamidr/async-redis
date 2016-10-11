@@ -14,7 +14,7 @@ namespace async_redis {
   class test_parser
   {
   public:
-    using parser = std::shared_ptr<std::pair<int, string>>;
+    using parser = std::shared_ptr<string>;
 
     test_parser(parser &ptr)
     {
@@ -45,7 +45,7 @@ namespace async_redis {
         throw;
 
       auto receiver = std::bind(&tcp_server::accept, this, std::placeholders::_1);
-      listener_watcher_ = listener_->template async_accept<tcp_socket>(receiver);
+      listener_->template async_accept<tcp_socket>(receiver);
     }
 
     void accept(std::shared_ptr<tcp_socket> socket) {
@@ -70,7 +70,7 @@ namespace async_redis {
       }
 
       socket->async_write("hello world!", [this, &socket]() {
-        loop_.async_timeout(1, [this, &socket]() {
+        loop_.async_timeout(.1, [this, &socket]() {
           conns_.erase(socket);
         });
       });
@@ -78,13 +78,10 @@ namespace async_redis {
     }
 
   private:
-    using event_watcher_t = typename InputOutputHandler::event_watcher_t;
     using socket_t = std::shared_ptr<tcp_socket>;
 
     socket_t listener_;
     InputOutputHandler& loop_;
-    event_watcher_t listener_watcher_;
-    event_watcher_t write_watcher_;
     std::unordered_map<socket_t, parser_t> conns_;
   };
 

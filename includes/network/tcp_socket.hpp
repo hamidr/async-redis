@@ -27,7 +27,7 @@ namespace async_redis {
         addr.sin_port   = ::htons(port);
         addr.sin_addr.s_addr = inet_addr(host.data());
 
-        //setsockopt (fd_, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
+        // setsockopt (fd_, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
 
         return this->bind_to((socket_t *)&addr, sizeof(addr)) == 0;
       }
