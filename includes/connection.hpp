@@ -26,7 +26,7 @@ namespace async_redis {
 
       template<typename ...Args>
       inline void connect(Args... args) {
-        socket_->template async_connect<SocketType>(std::forward<Args>(args)...);
+        socket_->template async_connect<SocketType>(0, std::forward<Args>(args)...);
       }
 
       bool is_connected() const
