@@ -70,6 +70,7 @@ namespace async_redis {
 
     public:
       event_loop_ev();
+      event_loop_ev(struct ev_loop *);
       void run();
 
       socket_identifier_t watch(int, async_socket&);
@@ -87,7 +88,7 @@ namespace async_redis {
       void start(ev_io&);
 
     private:
-      struct ev_loop* loop_ = EV_DEFAULT;
+      struct ev_loop* loop_;
       std::unordered_map<socket_id, std::unique_ptr<socket_queue>> watchers_;
     };
   }

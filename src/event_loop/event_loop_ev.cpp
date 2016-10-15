@@ -4,6 +4,12 @@ namespace async_redis {
 namespace event_loop {
 
 event_loop_ev::event_loop_ev()
+  : loop_(EV_DEFAULT)
+{
+}
+
+event_loop_ev::event_loop_ev(struct ev_loop* loop)
+  : loop_(loop)
 {
 }
 
