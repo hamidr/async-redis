@@ -4,18 +4,29 @@ Another redis library written in c++1y with using libev(and an interface to supp
 ###[Still under heavy development]
 Right now it's just a redis library but I'm gonna separate the IO/Network package out to use it for other things as well.
 
-
+##INSTALL
+Create a directory in root for generate CMake output file.
+```
+mkdir build 
+cd build
+```
+Call cmake and pass project root directory as CMakeList path then call make install with sudo permission.
+```
+cmake ..
+sudo make install
+```
+You can use event_loop and parser as link library for your project and pass /usr/local/include as include directory.
 ##Show me an example:
 
 ```C++
 #include <memory>
 #include <iostream>
 
-#include "includes/event_loop/event_loop_ev.h"
-#include "includes/redis_client.hpp"
-#include "includes/parser/base_resp_parser.h"
-#include "includes/network/tcp_socket.hpp"
-#include "includes/network/unix_socket.hpp"
+#include <event_loop/event_loop_ev.h>
+#include <redis_client.hpp>
+#include <parser/base_resp_parser.h>
+#include <network/tcp_socket.hpp>
+#include <network/unix_socket.hpp>
 
 int main(int argc, char** args)
 {
