@@ -98,11 +98,15 @@ namespace async_redis {
       }
 
       template <typename SocketType, typename... Args>
-      void async_connect(async_socket::connect_handler_t handler, Args... args)
+      void async_connect(int timeout, async_socket::connect_handler_t handler, Args... args)
       {
-        io_.async_timeout(0.1, [this, args..., handler]() {
+        if (timeout == 10) // is equal to 1 second
+          return handler(false);
+
+        io_.async_timeout(0.1, [this, timeout, args..., handler]() {
+
             if (-1 == static_cast<SocketType&>(*this).connect(args...))
-              return this->async_connect<SocketType>(handler, args...);
+              return this->async_connect<SocketType>(timeout+1, handler, args...);
 
             handler(is_connected());
           });
