@@ -1,11 +1,10 @@
 #include "../../includes/parser/redis_response.h"
 
-#include "base_resp_parser.h"
-#include "simple_string_parser.h"
-#include "bulk_string_parser.h"
-#include "number_parser.h"
-#include "error_parser.h"
-#include "array_parser.h"
+#include "../../includes/parser/number_parser.h"
+#include "../../includes/parser/error_parser.h"
+#include "../../includes/parser/bulk_string_parser.h"
+#include "../../includes/parser/array_parser.h"
+#include "../../includes/parser/simple_string_parser.h"
 
 namespace async_redis {
 namespace parser {

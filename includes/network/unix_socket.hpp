@@ -5,15 +5,21 @@
 namespace async_redis {
   namespace network
   {
-    class unix_socket : public async_socket
+    template<typename InputOutputHanler>
+    class unix_socket : public async_socket_t<InputOutputHanler>
     {
     public:
-      unix_socket() {
-        create_socket(AF_UNIX);
+
+      inline
+      unix_socket(InputOutputHanler &io)
+        : async_socket_t<InputOutputHanler>(io)
+      {
+        this->create_socket(AF_UNIX);
       }
 
-      unix_socket(int fd)
-        : async_socket(fd)
+      inline
+      unix_socket(InputOutputHanler &io, int fd)
+        : async_socket_t<InputOutputHanler>(io, fd)
       {}
 
       int connect(const string& path) {
@@ -22,17 +28,19 @@ namespace async_redis {
         strcpy(addr.sun_path, path.data());
         auto len = strlen(addr.sun_path) + sizeof(addr.sun_family);
 
-        return connect_to((socket_t *)&addr, len);
+        return this->connect_to((socket_t *)&addr, sizeof(addr));
       }
 
       bool bind(const string& path) {
+        ::unlink(path.data());
+
         struct sockaddr_un addr = {0};
         addr.sun_family = AF_UNIX;
         strcpy(addr.sun_path, path.data());
 
         auto len = strlen(addr.sun_path) + sizeof(addr.sun_family);
 
-        return bind_to((socket_t *)&addr, len) == 0;
+        return this->bind_to((socket_t *)&addr, sizeof(addr)) == 0;
       }
 
     };
