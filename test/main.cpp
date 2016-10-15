@@ -18,7 +18,7 @@ int main(int argc, char** args)
 
 
    async_redis::tcp_server::tcp_server<decltype(loop), async_redis::tcp_server::test_parser> server(loop);
-   server.listen(9080);
+   // server.listen(9080);
 
    try {
      client_ptr = std::make_unique<redis_client_t>(loop, 1);
@@ -40,11 +40,11 @@ int main(int argc, char** args)
      }
 
      client.set("h1", "value1", [&](parser_t paresed) {
-         // std::cout << paresed->to_string() << std::endl;
+         std::cout << paresed->to_string() << std::endl;
          client.get("h1", [&](parser_t p) {
-             // std::cout << p->to_string() << std::endl;
+             std::cout << p->to_string() << std::endl;
              client.set("h2", "fooooo", [](parser_t p2) {
-                 // std::cout << p2->to_string() << std::endl;
+                 std::cout << p2->to_string() << std::endl;
                });
            });
        });
