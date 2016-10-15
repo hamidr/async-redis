@@ -42,14 +42,12 @@ namespace async_redis {
             req_queue_.emplace(reply_cb, nullptr);
 
             if (req_queue_.size() == 1)
-              socket_->async_read(std::bind(&connection::reply_received, this, std::placeholders::_1, std::placeholders::_2));
+              socket_->async_read(buffer_, max_length, std::bind(&connection::reply_received, this, std::placeholders::_1));
           });
-
       }
 
     private:
-      void reply_received(const char* data, ssize_t len) {
-
+      void reply_received(ssize_t len) {
         ssize_t acc = 0;
 
         while (acc < len && req_queue_.size()) {
@@ -61,7 +59,7 @@ namespace async_redis {
           if (0 != len && -1 != len) {
 
             bool is_finished = false;
-            acc += ParserPolicy(parser).append_chunk(data + acc, len - acc, is_finished);
+            acc += ParserPolicy(parser).append_chunk(buffer_ + acc, len - acc, is_finished);
 
             if (!is_finished)
               break;
@@ -73,13 +71,15 @@ namespace async_redis {
         }
 
         if (req_queue_.size() != 0)
-          socket_->async_read(std::bind(&connection::reply_received, this, std::placeholders::_1, std::placeholders::_2));
+          socket_->async_read(buffer_, max_length, std::bind(&connection::reply_received, this, std::placeholders::_1));
       }
 
     private:
       std::shared_ptr<SocketType> socket_;
       InputOutputHandler& event_loop_;
       std::queue<std::tuple<reply_cb_t, parser_t>> req_queue_;
+      enum {max_length = 1024};
+      char buffer_[max_length] = {0};
     };
 
   }

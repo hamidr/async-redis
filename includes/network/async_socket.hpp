@@ -24,7 +24,7 @@ namespace async_redis {
 
     struct async_socket
     {
-      using recv_cb_t         = std::function<void (const char*, int )>;
+      using recv_cb_t         = std::function<void (int )>;
       using ready_cb_t        = std::function<void ()>;
       using connect_handler_t = std::function<void (bool)>;
 
@@ -82,19 +82,18 @@ namespace async_redis {
 
       inline
       void async_write(const string& data, const ready_cb_t& cb) {
-        return io_.async_write(id_, data, cb);
-      }
-
-      inline
-      void async_write_then_read(const string& data, const recv_cb_t& cb) {
-        return this->async_write(data, [&, cb]() {
-            this->async_read(cb);
+        return io_.async_write(id_, [this, data, cb]() {
+            send(data);
+            cb();
           });
       }
 
       inline
-      void async_read(const recv_cb_t& cb) {
-        return io_.async_read(id_, cb);
+      void async_read(char* buffer, uint len, const recv_cb_t& cb) {
+        return io_.async_read(id_, [&, len, cb]() {
+            auto l = receive(buffer, len);
+            cb(l);
+          });
       }
 
       template <typename SocketType, typename... Args>
@@ -115,7 +114,7 @@ namespace async_redis {
       template<typename SocketType>
       void async_accept(const std::function<void(std::shared_ptr<SocketType>)>& cb)
       {
-        return async_read([&, cb](const char* data, int len) {
+        return io_.async_read([&, cb]() {
             int fd = this->accept();
             cb(std::make_shared<SocketType>(io_, fd));
             this->async_accept(cb);
