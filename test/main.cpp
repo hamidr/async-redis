@@ -1,12 +1,12 @@
 #include <memory>
 #include <iostream>
 
-#include "includes/event_loop/event_loop_ev.h"
-#include "includes/redis_client.hpp"
-#include "includes/parser/base_resp_parser.h"
-#include "includes/network/tcp_socket.hpp"
-#include "includes/network/unix_socket.hpp"
-#include "includes/network/tcp_server.hpp"
+#include <event_loop/event_loop_ev.h>
+#include <redis_client.hpp>
+#include <parser/base_resp_parser.h>
+#include <network/tcp_socket.hpp>
+#include <network/unix_socket.hpp>
+#include <network/tcp_server.hpp>
 
 int main(int argc, char** args)
 {
