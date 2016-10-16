@@ -6,20 +6,20 @@ namespace async_redis {
   namespace network
   {
     template<typename InputOutputHanler>
-    class unix_socket : public async_socket_t<InputOutputHanler>
+    class unix_socket : public async_socket<InputOutputHanler>
     {
     public:
 
       inline
       unix_socket(InputOutputHanler &io)
-        : async_socket_t<InputOutputHanler>(io)
+        : async_socket<InputOutputHanler>(io)
       {
         this->create_socket(AF_UNIX);
       }
 
       inline
       unix_socket(InputOutputHanler &io, int fd)
-        : async_socket_t<InputOutputHanler>(io, fd)
+        : async_socket<InputOutputHanler>(io, fd)
       {}
 
       int connect(const string& path) {

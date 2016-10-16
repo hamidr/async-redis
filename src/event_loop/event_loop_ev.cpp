@@ -12,12 +12,12 @@ void event_loop_ev::run()
   ev_run (loop_, 0);
 }
 
-void event_loop_ev::async_write(socket_identifier_t& id, const string& data, const ready_cb_t& cb)
+void event_loop_ev::async_write(socket_identifier_t& id, const action& cb)
 {
   socket_queue *watcher = id->second.get();
 
   auto &handlers = watcher->write_handlers;
-  handlers.push(std::make_tuple(data, cb));
+  handlers.push(cb);
 
   if (watcher->write_handlers.size() == 1) {
     ev_io *w = &watcher->write_watcher;
@@ -25,7 +25,7 @@ void event_loop_ev::async_write(socket_identifier_t& id, const string& data, con
   }
 }
 
-void event_loop_ev::async_read(socket_identifier_t& id, const recv_cb_t& cb)
+void event_loop_ev::async_read(socket_identifier_t& id, const action& cb)
 {
   socket_queue *watcher = id->second.get();
 
@@ -38,7 +38,7 @@ void event_loop_ev::async_read(socket_identifier_t& id, const recv_cb_t& cb)
   }
 }
 
-void event_loop_ev::async_timeout(double time, const timeout_cb_t& cb )
+void event_loop_ev::async_timeout(double time, const action& cb )
 {
   timer_watcher *w = new timer_watcher(time, cb);
   ev_timer_start (loop_, &w->timer);
@@ -52,18 +52,12 @@ void event_loop_ev::read_handler(EV_P_ ev_io* w, int revents) {
   }
 
   socket_queue* sq = reinterpret_cast<socket_queue*>(w->data);
-
-  char tmp_buf[256] = {0};
-
   auto &handlers = sq->read_handlers;
 
   if (handlers.size() != 0)
   {
     auto &action = handlers.front();
-    auto received_len = sq->socket.receive(tmp_buf, 255);
-
-    action(tmp_buf, received_len);
-
+    action();
     handlers.pop();
   }
 
@@ -85,14 +79,7 @@ void event_loop_ev::write_handler(EV_P_ ev_io* w, int revents)
   if (handlers.size() != 0)
   {
     auto &action = handlers.front();
-
-    auto &data = std::get<0>(action);
-    auto &cb = std::get<1>(action);
-
-
-    sq->socket.send(data);
-    cb();
-
+    action();
     handlers.pop();
   }
 
@@ -119,12 +106,12 @@ void event_loop_ev::start(ev_io& io)
   ev_io_start(loop_, &io);
 }
 
-event_loop_ev::socket_identifier_t event_loop_ev::watch(int fd, async_socket& socket)
+event_loop_ev::socket_identifier_t event_loop_ev::watch(int fd)
 {
   auto iter = watchers_.find(fd);
 
   if (iter == watchers_.end()) {
-    auto w = watchers_.emplace(fd, std::make_unique<event_loop_ev::socket_queue>(*this, fd, socket));
+    auto w = watchers_.emplace(fd, std::make_unique<event_loop_ev::socket_queue>(*this, fd));
     return w.first;
   }
 

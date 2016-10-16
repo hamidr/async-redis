@@ -47,3 +47,6 @@ install(TARGETS parser
   )
 
 install(DIRECTORY ${PROJECT_INCLUDE_DIR}/ DESTINATION /usr/local/include)
+
+add_executable (test ${CMAKE_SOURCE_DIR}/test/main.cpp)
+target_link_libraries(test parser event_loop ev)
