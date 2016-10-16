@@ -6,8 +6,6 @@
 #include <unordered_map>
 #include <queue>
 
-#include "../network/async_socket.hpp"
-
 namespace async_redis {
   namespace event_loop
   {
@@ -18,7 +16,6 @@ namespace async_redis {
       struct socket_queue;
 
     public:
-      using async_socket = ::async_redis::network::async_socket;
       using action       = std::function<void()>;
 
       using socket_identifier_t = std::unordered_map<socket_id, std::unique_ptr<socket_queue>>::iterator;
@@ -38,7 +35,6 @@ namespace async_redis {
 
       struct socket_queue
       {
-        async_socket& socket;
         event_loop_ev& loop_;
 
         ev_io write_watcher;
@@ -47,8 +43,8 @@ namespace async_redis {
         std::queue<action> write_handlers;
         std::queue<action> read_handlers;
 
-        socket_queue(event_loop_ev& loop, int fd, async_socket& s)
-          : loop_(loop), socket(s)
+        socket_queue(event_loop_ev& loop, int fd)
+          : loop_(loop)
         {
           ev_io_init(&read_watcher, &event_loop_ev::read_handler, fd, EV_READ);
           ev_io_init(&write_watcher, &event_loop_ev::write_handler, fd, EV_WRITE);
@@ -67,7 +63,7 @@ namespace async_redis {
       event_loop_ev();
       void run();
 
-      socket_identifier_t watch(int, async_socket&);
+      socket_identifier_t watch(int);
       void unwatch(socket_identifier_t&);
 
       void async_write(socket_identifier_t& id, const action& cb);

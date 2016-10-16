@@ -22,11 +22,32 @@ namespace async_redis {
     class connect_socket_exception : socket_excetion {};
     class nonblocking_socket_exception : socket_excetion {};
 
-    struct async_socket
+    template <typename InputOutputHanler>
+    class async_socket
     {
+    public:
+      using socket_identifier_t  = typename InputOutputHanler::socket_identifier_t;
       using recv_cb_t         = std::function<void (int )>;
       using ready_cb_t        = std::function<void ()>;
       using connect_handler_t = std::function<void (bool)>;
+
+      async_socket(InputOutputHanler& io)
+        : io_(io)
+      { }
+
+      async_socket(InputOutputHanler &io, int fd)
+        : io_(io)
+      {
+        fd_ = fd;
+        is_connected_ = true;
+
+        id_ = io_.watch(fd_);
+      }
+
+      inline ~async_socket() {
+        close();
+        io_.unwatch(id_);
+      }
 
       inline int send(const string& data) {
         return ::send(fd_, data.data(), data.size(), 0);
@@ -52,35 +73,7 @@ namespace async_redis {
         return ::close(fd_) == 0;
       }
 
-    protected:
-      int fd_ = -1;
-    };
 
-    template <typename InputOutputHanler>
-    class async_socket_t : public async_socket
-    {
-      using socket_identifier_t  = typename InputOutputHanler::socket_identifier_t;
-
-    public:
-      async_socket_t(InputOutputHanler& io)
-        : io_(io)
-      { }
-
-      async_socket_t(InputOutputHanler &io, int fd)
-        : io_(io)
-      {
-        fd_ = fd;
-        is_connected_ = true;
-
-        id_ = io_.watch(fd_, *this);
-      }
-
-      inline ~async_socket_t() {
-        close();
-        io_.unwatch(id_);
-      }
-
-      inline
       void async_write(const string& data, const ready_cb_t& cb) {
         return io_.async_write(id_, [this, data, cb]() {
             send(data);
@@ -88,7 +81,6 @@ namespace async_redis {
           });
       }
 
-      inline
       void async_read(char* buffer, uint len, const recv_cb_t& cb) {
         return io_.async_read(id_, [&, len, cb]() {
             auto l = receive(buffer, len);
@@ -134,7 +126,7 @@ namespace async_redis {
         if (-1 == fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK))
           throw nonblocking_socket_exception();
 
-        id_ = io_.watch(fd_, *this);
+        id_ = io_.watch(fd_);
       }
 
       int connect_to(socket_t* socket_addr, int len) {
@@ -153,6 +145,7 @@ namespace async_redis {
       bool is_connected_ = false;
       InputOutputHanler& io_;
       socket_identifier_t id_;
+      int fd_ = -1;
     };
   }
 }

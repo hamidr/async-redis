@@ -106,12 +106,12 @@ void event_loop_ev::start(ev_io& io)
   ev_io_start(loop_, &io);
 }
 
-event_loop_ev::socket_identifier_t event_loop_ev::watch(int fd, async_socket& socket)
+event_loop_ev::socket_identifier_t event_loop_ev::watch(int fd)
 {
   auto iter = watchers_.find(fd);
 
   if (iter == watchers_.end()) {
-    auto w = watchers_.emplace(fd, std::make_unique<event_loop_ev::socket_queue>(*this, fd, socket));
+    auto w = watchers_.emplace(fd, std::make_unique<event_loop_ev::socket_queue>(*this, fd));
     return w.first;
   }
 
