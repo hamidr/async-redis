@@ -25,11 +25,11 @@ void EventLoopEV::ASyncWrite(SocketIdentifierT& id, const std::function<void()>&
 {
   IOWatcher* watcher = id->second.get();
 
-  auto &handlers = watcher->write_handlers;
+  auto &handlers = watcher->writeHandlers_;
   handlers.push(cb);
 
-  if (watcher->write_handlers.size() == 1) {
-    ev_io *w = &watcher->write_watcher;
+  if (watcher->writeHandlers_.size() == 1) {
+    ev_io *w = &watcher->writeWatcher_;
     ev_io_start(loop_, w);
   }
 }
@@ -38,11 +38,11 @@ void EventLoopEV::ASyncRead(SocketIdentifierT& id, const std::function<void()>& 
 {
   IOWatcher *watcher = id->second.get();
 
-  auto &handlers = watcher->read_handlers;
+  auto &handlers = watcher->readHandlers_;
   handlers.push(cb);
 
-  if (watcher->read_handlers.size() == 1) {
-    ev_io *w = &watcher->read_watcher;
+  if (watcher->readHandlers_.size() == 1) {
+    ev_io *w = &watcher->readWatcher_;
     ev_io_start(loop_, w);
   }
 }

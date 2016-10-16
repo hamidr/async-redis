@@ -37,19 +37,19 @@ TimerWatcher::GetTimeoutCallBack(){
 IOWatcher::IOWatcher(EventLoopEV& loop, int fd)
   : loop_(loop)
 {
-  ev_io_init(&read_watcher, &IOWatcher::read_handler, fd, EV_READ);
-  ev_io_init(&write_watcher, &IOWatcher::write_handler, fd, EV_WRITE);
+  ev_io_init(&readWatcher_, &IOWatcher::ReadHandler, fd, EV_READ);
+  ev_io_init(&writeWatcher_, &IOWatcher::WriteHandler, fd, EV_WRITE);
 
-  write_watcher.data = this;
-  read_watcher.data = this;
+  writeWatcher_.data = this;
+  readWatcher_.data = this;
 }
 
 IOWatcher::~IOWatcher(){
-  loop_.Stop(write_watcher);
-  loop_.Stop(read_watcher);
+  loop_.Stop(writeWatcher_);
+  loop_.Stop(readWatcher_);
 }
 
-void IOWatcher::read_handler(EV_P_ ev_io* w, int revents) {
+void IOWatcher::ReadHandler(EV_P_ ev_io* w, int revents) {
   /* LOG_THIS; */
   if (!(revents & EV_READ)) {
     // LOG_ERR("WRONG EVENT ON read_handler");
@@ -57,7 +57,7 @@ void IOWatcher::read_handler(EV_P_ ev_io* w, int revents) {
   }
 
   IOWatcher* sq = reinterpret_cast<IOWatcher*>(w->data);
-  auto &handlers = sq->read_handlers;
+  auto &handlers = sq->readHandlers_;
 
   if (handlers.size() != 0)
   {
@@ -67,10 +67,10 @@ void IOWatcher::read_handler(EV_P_ ev_io* w, int revents) {
   }
 
   if (handlers.size() == 0)
-    ev_io_stop(loop, &sq->read_watcher);
+    ev_io_stop(loop, &sq->readWatcher_);
 }
 
-void IOWatcher::write_handler(EV_P_ ev_io* w, int revents)
+void IOWatcher::WriteHandler(EV_P_ ev_io* w, int revents)
 {
   /* LOG_THIS; */
   if (!(revents & EV_WRITE)) {
@@ -79,7 +79,7 @@ void IOWatcher::write_handler(EV_P_ ev_io* w, int revents)
   }
 
   IOWatcher* sq = reinterpret_cast<IOWatcher*>(w->data);
-  auto &handlers = sq->write_handlers;
+  auto &handlers = sq->writeHandlers_;
 
   if (handlers.size() != 0)
   {
@@ -89,7 +89,7 @@ void IOWatcher::write_handler(EV_P_ ev_io* w, int revents)
   }
 
   if (handlers.size() == 0)
-    ev_io_stop(loop, &sq->write_watcher);
+    ev_io_stop(loop, &sq->writeWatcher_);
 }
 
 }

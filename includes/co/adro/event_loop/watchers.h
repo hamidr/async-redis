@@ -28,16 +28,17 @@ namespace event_loop{
       public:
         IOWatcher(EventLoopEV& loop, int fd);
         ~IOWatcher();
+
+        static void ReadHandler(EV_P_ ev_io* w, int revents);
+        static void WriteHandler(EV_P_ ev_io* w, int revents);
       public:
         EventLoopEV& loop_;
 
-        ev_io write_watcher;
-        ev_io read_watcher;
+        ev_io writeWatcher_;
+        ev_io readWatcher_;
 
-        static void read_handler(EV_P_ ev_io* w, int revents);
-        static void write_handler(EV_P_ ev_io* w, int revents);
-        std::queue<std::function<void()> > write_handlers;
-        std::queue<std::function<void()> > read_handlers;
+        std::queue<std::function<void()> > writeHandlers_;
+        std::queue<std::function<void()> > readHandlers_;
     };
 
 }
