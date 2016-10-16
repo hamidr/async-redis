@@ -1,7 +1,8 @@
 #include <memory>
 #include <iostream>
 
-#include <event_loop/event_loop_ev.h>
+#include <co/adro/event_loop/event_loop_ev.h>
+#include <co/adro/event_loop/watchers.h>
 #include <redis_client.hpp>
 #include <parser/base_resp_parser.h>
 #include <network/tcp_socket.hpp>
@@ -13,7 +14,7 @@ int main(int argc, char** args)
    if (argc != 2)
      return 0;
 
-   async_redis::event_loop::event_loop_ev loop;
+   co::adro::event_loop::EventLoopEV loop;
    using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::unix_socket<decltype(loop)>>;
    // using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::tcp_socket<decltype(loop)>>;
 
@@ -149,7 +150,7 @@ int main(int argc, char** args)
    // client.connect(connect, "127.0.0.1", 6379);
    client.connect(connect, "/tmp/redis.sock");
 
-   loop.run();
+   loop.Run();
 
   return 0;
 }

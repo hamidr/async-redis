@@ -66,7 +66,7 @@ namespace async_redis {
       }
 
       socket->async_write("hello world!", [this, &socket]() {
-        loop_.async_timeout(.1, [this, &socket]() {
+        loop_.ASyncTimeout(.1, [this, &socket]() {
           conns_.erase(socket);
         });
       });

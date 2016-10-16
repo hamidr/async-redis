@@ -26,7 +26,7 @@ namespace async_redis {
     class async_socket
     {
     public:
-      using socket_identifier_t  = typename InputOutputHanler::socket_identifier_t;
+      using SocketIdentifierT  = typename InputOutputHanler::SocketIdentifierT;
       using recv_cb_t         = std::function<void (const char*, int)>;
       using ready_cb_t        = std::function<void ()>;
       using connect_handler_t = std::function<void (bool)>;
@@ -41,12 +41,12 @@ namespace async_redis {
         fd_ = fd;
         is_connected_ = true;
 
-        id_ = io_.watch(fd_);
+        id_ = io_.Watch(fd_);
       }
 
       inline ~async_socket() {
         close();
-        io_.unwatch(id_);
+        io_.UnWatch(id_);
       }
 
       inline int send(const string& data) {
@@ -75,7 +75,7 @@ namespace async_redis {
 
 
       void async_write(const string& data, const ready_cb_t& cb) {
-        return io_.async_write(id_, [this, data, cb]() {
+        return io_.ASyncWrite(id_, [this, data, cb]() {
             send(data);
             cb();
           });
@@ -83,7 +83,7 @@ namespace async_redis {
 
       void async_read(// char* buffer, uint len, 
                       const recv_cb_t& cb) {
-        return io_.async_read(id_, [&, // len, 
+        return io_.ASyncRead(id_, [&, // len, 
                                     cb]() {
             char b[1024];
             auto l = receive(b, 1023);
@@ -97,7 +97,7 @@ namespace async_redis {
         if (timeout == 10) // is equal to 1 second
           return handler(false);
 
-        io_.async_timeout(0.1, [this, timeout, args..., handler]() {
+        io_.ASyncTimeout(0.1, [this, timeout, args..., handler]() {
 
             if (-1 == static_cast<SocketType&>(*this).connect(args...))
               return this->async_connect<SocketType>(timeout+1, handler, args...);
@@ -109,7 +109,7 @@ namespace async_redis {
       template<typename SocketType>
       void async_accept(const std::function<void(std::shared_ptr<SocketType>)>& cb)
       {
-        return io_.async_read(id_, [&, cb]() {
+        return io_.ASyncRead(id_, [&, cb]() {
             int fd = this->accept();
             cb(std::make_shared<SocketType>(io_, fd));
             this->async_accept(cb);
@@ -129,7 +129,7 @@ namespace async_redis {
         if (-1 == fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK))
           throw nonblocking_socket_exception();
 
-        id_ = io_.watch(fd_);
+        id_ = io_.Watch(fd_);
       }
 
       int connect_to(socket_t* socket_addr, int len) {
@@ -147,7 +147,7 @@ namespace async_redis {
     private:
       bool is_connected_ = false;
       InputOutputHanler& io_;
-      socket_identifier_t id_;
+      SocketIdentifierT id_;
       int fd_ = -1;
     };
   }

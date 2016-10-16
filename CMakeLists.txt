@@ -14,7 +14,7 @@ endif()
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
-set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
+set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/source)
 set(PROJECT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/includes)
 
 include_directories(${PROJECT_INCLUDE_DIR})
@@ -25,7 +25,9 @@ link_directories("/usr/lib")
 link_directories("/usr/local/lib")
 
 add_library(event_loop 
-  ${PROJECT_SOURCE_DIR}/event_loop/event_loop_ev.cpp)
+  ${PROJECT_SOURCE_DIR}/co/adro/event_loop/event_loop_ev.cc
+  ${PROJECT_SOURCE_DIR}/co/adro/event_loop/watchers.cc
+  )
 
 add_library(parser 
   ${PROJECT_SOURCE_DIR}/parser/array_parser.cpp
