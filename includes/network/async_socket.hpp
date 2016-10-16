@@ -27,7 +27,7 @@ namespace async_redis {
     {
     public:
       using socket_identifier_t  = typename InputOutputHanler::socket_identifier_t;
-      using recv_cb_t         = std::function<void (int )>;
+      using recv_cb_t         = std::function<void (const char*, int)>;
       using ready_cb_t        = std::function<void ()>;
       using connect_handler_t = std::function<void (bool)>;
 
@@ -81,10 +81,13 @@ namespace async_redis {
           });
       }
 
-      void async_read(char* buffer, uint len, const recv_cb_t& cb) {
-        return io_.async_read(id_, [&, len, cb]() {
-            auto l = receive(buffer, len);
-            cb(l);
+      void async_read(// char* buffer, uint len, 
+                      const recv_cb_t& cb) {
+        return io_.async_read(id_, [&, // len, 
+                                    cb]() {
+            char b[1024];
+            auto l = receive(b, 1023);
+            cb(b, l);
           });
       }
 
@@ -106,7 +109,7 @@ namespace async_redis {
       template<typename SocketType>
       void async_accept(const std::function<void(std::shared_ptr<SocketType>)>& cb)
       {
-        return io_.async_read([&, cb]() {
+        return io_.async_read(id_, [&, cb]() {
             int fd = this->accept();
             cb(std::make_shared<SocketType>(io_, fd));
             this->async_accept(cb);

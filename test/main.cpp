@@ -18,7 +18,7 @@ int main(int argc, char** args)
 
 
    async_redis::tcp_server::tcp_server<decltype(loop), async_redis::tcp_server::test_parser> server(loop);
-   // server.listen(9080);
+   server.listen(9080);
 
    try {
      client_ptr = std::make_unique<redis_client_t>(loop, 1);
@@ -49,6 +49,7 @@ int main(int argc, char** args)
            });
        });
 
+     // return;
 
    for(int i = 0; i< 2; ++i)
    client.get("hamid", [&](parser_t parsed) {

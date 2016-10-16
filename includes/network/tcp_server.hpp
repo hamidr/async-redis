@@ -49,14 +49,14 @@ namespace async_redis {
     }
 
     void accept(std::shared_ptr<tcp_socket> socket) {
-      auto receiver = std::bind(&tcp_server::chunk_received, this, std::placeholders::_1, socket);
+      auto receiver = std::bind(&tcp_server::chunk_received, this, std::placeholders::_1, std::placeholders::_2, socket);
       socket->async_read(receiver);
 
       conns_.emplace(socket, nullptr);
     }
 
   private:
-    void chunk_received(int len, std::shared_ptr<tcp_socket>& socket) {
+    void chunk_received(const char* data, int len, std::shared_ptr<tcp_socket>& socket) {
       ssize_t acc = 0;
       bool is_finished = false;
 
@@ -79,8 +79,8 @@ namespace async_redis {
     socket_t listener_;
     InputOutputHandler& loop_;
     std::unordered_map<socket_t, void*> conns_;
-    enum { max_length = 1024 };
-    char buffer_[max_length] = {0};
+    // enum { max_length = 1024 };
+    // char buffer_[max_length] = {0};
   };
 
   }
