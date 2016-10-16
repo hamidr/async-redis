@@ -55,12 +55,8 @@ namespace async_redis {
       conns_.emplace(socket, nullptr);
     }
 
-    void data_received(parser_t& data) {
-      LOG_ME(data->second);
-    }
-
   private:
-    void chunk_received(const char* data, ssize_t len, std::shared_ptr<tcp_socket>& socket) {
+    void chunk_received(const char* data, int len, std::shared_ptr<tcp_socket>& socket) {
       ssize_t acc = 0;
       bool is_finished = false;
 
@@ -82,7 +78,9 @@ namespace async_redis {
 
     socket_t listener_;
     InputOutputHandler& loop_;
-    std::unordered_map<socket_t, parser_t> conns_;
+    std::unordered_map<socket_t, void*> conns_;
+    // enum { max_length = 1024 };
+    // char buffer_[max_length] = {0};
   };
 
   }
