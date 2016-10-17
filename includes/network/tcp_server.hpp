@@ -8,31 +8,12 @@
 #include <unordered_map>
 
 namespace async_redis {
-  namespace tcp_server {
+namespace tcp_server {
 
-  using std::string;
-  class test_parser
-  {
-  public:
-    using parser = std::shared_ptr<string>;
-
-    test_parser(parser &ptr)
-    {
-    }
-
-    int append_chunk(const char* chunk, ssize_t length, bool &is_finished) {
-      is_finished = true;
-      return length;
-    }
-  };
-
-
-  template<typename InputOutputHandler, typename ParserPolicy>
+  template<typename InputOutputHandler>
   class tcp_server
   {
   public:
-    using parser_t     = typename ParserPolicy::parser;
-    using receive_cb_t = std::function<void (parser_t)>;
     using tcp_socket   = async_redis::network::tcp_socket<InputOutputHandler>;
 
     tcp_server(InputOutputHandler &event_loop)
@@ -55,12 +36,8 @@ namespace async_redis {
       conns_.emplace(socket, nullptr);
     }
 
-    void data_received(parser_t& data) {
-      LOG_ME(data->second);
-    }
-
   private:
-    void chunk_received(const char* data, ssize_t len, std::shared_ptr<tcp_socket>& socket) {
+    void chunk_received(const char* data, int len, std::shared_ptr<tcp_socket>& socket) {
       ssize_t acc = 0;
       bool is_finished = false;
 
@@ -82,8 +59,8 @@ namespace async_redis {
 
     socket_t listener_;
     InputOutputHandler& loop_;
-    std::unordered_map<socket_t, parser_t> conns_;
+    std::unordered_map<socket_t, void*> conns_;
   };
 
-  }
+}
 }

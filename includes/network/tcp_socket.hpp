@@ -6,18 +6,18 @@ namespace async_redis {
   namespace network
   {
     template<typename InputOutputHanler>
-    class tcp_socket : public async_socket_t<InputOutputHanler>
+    class tcp_socket : public async_socket<InputOutputHanler>
     {
 
     public:
       tcp_socket(InputOutputHanler& io)
-        : async_socket_t<InputOutputHanler>(io)
+        : async_socket<InputOutputHanler>(io)
       {
         this->create_socket(AF_INET);
       }
 
       tcp_socket(InputOutputHanler& io, int fd)
-        : async_socket_t<InputOutputHanler>(io, fd)
+        : async_socket<InputOutputHanler>(io, fd)
       {}
 
       bool bind(const string& host, int port)
@@ -27,13 +27,14 @@ namespace async_redis {
         addr.sin_port   = ::htons(port);
         addr.sin_addr.s_addr = inet_addr(host.data());
 
-        // setsockopt (fd_, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
 
         return this->bind_to((socket_t *)&addr, sizeof(addr)) == 0;
       }
 
       int connect(const string& host, int port)
       {
+        //TODO:
+        // setsockopt (fd_, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
         struct sockaddr_in addr = {0};
         addr.sin_family = AF_INET;
         addr.sin_port   = ::htons(port);

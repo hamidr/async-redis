@@ -18,7 +18,7 @@ namespace async_redis {
     {
       using connection_t = connection<InputOutputHandler, SocketType, ::async_redis::parser::redis_response>;
       using reply_cb_t = typename connection_t::reply_cb_t;
-      using connect_handler_t = async_redis::network::async_socket::connect_handler_t;
+      using connect_handler_t = typename async_redis::network::async_socket<SocketType>::connect_handler_t;
 
     public:
       using parser_t = typename connection_t::parser_t;

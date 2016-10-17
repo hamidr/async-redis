@@ -5,8 +5,6 @@
 #include <memory>
 #include <tuple>
 
-#include "network/unix_socket.hpp"
-
 namespace async_redis {
   namespace redis_impl
   {
@@ -21,7 +19,7 @@ namespace async_redis {
 
       connection(InputOutputHandler &event_loop)
         : event_loop_(event_loop) {
-        socket_ = std::make_shared<SocketType>(event_loop);
+        socket_ = std::make_unique<SocketType>(event_loop);
       }
 
       template<typename ...Args>
@@ -44,12 +42,10 @@ namespace async_redis {
             if (req_queue_.size() == 1)
               socket_->async_read(std::bind(&connection::reply_received, this, std::placeholders::_1, std::placeholders::_2));
           });
-
       }
 
     private:
-      void reply_received(const char* data, ssize_t len) {
-
+      void reply_received(const char* data, int len) {
         ssize_t acc = 0;
 
         while (acc < len && req_queue_.size()) {
@@ -68,7 +64,6 @@ namespace async_redis {
 
             cb(parser);
             req_queue_.pop(); //free the resources
-
           }
         }
 
@@ -77,7 +72,7 @@ namespace async_redis {
       }
 
     private:
-      std::shared_ptr<SocketType> socket_;
+      std::unique_ptr<SocketType> socket_;
       InputOutputHandler& event_loop_;
       std::queue<std::tuple<reply_cb_t, parser_t>> req_queue_;
     };

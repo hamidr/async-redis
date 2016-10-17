@@ -10,6 +10,9 @@
 
 int main(int argc, char** args)
 {
+   if (argc != 2)
+     return 0;
+
    async_redis::event_loop::event_loop_ev loop;
    using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::unix_socket<decltype(loop)>>;
    // using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::tcp_socket<decltype(loop)>>;
@@ -17,8 +20,9 @@ int main(int argc, char** args)
    std::unique_ptr<redis_client_t> client_ptr;
 
 
-   async_redis::tcp_server::tcp_server<decltype(loop), async_redis::tcp_server::test_parser> server(loop);
-   // server.listen(9080);
+   async_redis::tcp_server::tcp_server<decltype(loop)> server(loop);
+   int port  = std::stoi(args[1]);
+   server.listen(port);
 
    try {
      client_ptr = std::make_unique<redis_client_t>(loop, 1);
@@ -49,6 +53,7 @@ int main(int argc, char** args)
            });
        });
 
+     // return;
 
    for(int i = 0; i< 2; ++i)
    client.get("hamid", [&](parser_t parsed) {
