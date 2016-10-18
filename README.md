@@ -19,47 +19,44 @@ You can use event_loop and parser as link library for your project and pass /usr
 ##Show me an example:
 
 ```C++
+
 #include <memory>
 #include <iostream>
 
-#include <event_loop/event_loop_ev.h>
-#include <redis_client.hpp>
-#include <parser/base_resp_parser.h>
-#include <network/tcp_socket.hpp>
-#include <network/unix_socket.hpp>
+#include <co/adro/event_loop/event_loop_ev.h>
+#include <co/adro/event_loop/watchers.h>
+#include <co/adro/redis/redis_client.h>
+#include <co/adro/redis/parser/base_resp_parser.h>
+#include <co/adro/network/tcp_socket.h>
+#include <co/adro/network/unix_socket.h>
+#include <co/adro/network/tcp_server.h>
 
 int main(int argc, char** args)
 {
-   async_redis::event_loop::event_loop_ev loop;
-   //If you want tcp socket
-   // using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::tcp_socket>;
-   using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::unix_socket>;
-   using parser_t = typename redis_client_t::parser_t;
+   co::adro::event_loop::EventLoopEV loop;
+   co::adro::redis::RedisClient client(loop , new co::adro::network::UnixSocket(loop) , 1 );
+   auto connect = [&](bool res) {
+     if (!res) {
+       std::cout << "didn't connect!" << std::endl;
+       return;
+     }
 
-   //a tcp client with 4 connections
-   auto client_ptr = std::make_unique<redis_client_t>(loop, 4);
+     client.Set("h1", "value1", [&](std::shared_ptr<co::adro::redis::parser::base_resp_parser> paresed) {
+         std::cout << paresed->to_string() << std::endl;
+         client.Get("h1", [&](std::shared_ptr<co::adro::redis::parser::base_resp_parser> p) {
+             std::cout << p->to_string() << std::endl;
+             client.Set("h2", "fooooo", [](std::shared_ptr<co::adro::redis::parser::base_resp_parser> p2) {
+                 std::cout << p2->to_string() << std::endl;
+               });
+           });
+       });
 
-   auto connect = [&](bool res)
-   {
+     };
 
-      //all 4 connections should be available for "res" to be True
-      if (!res) {
-        std::cout << "didn't connect!" << std::endl;
-        return;
-      }
+//client.connect(connect, "127.0.0.1", 6379);
+  client.Connect(connect, "/var/run/redis/redis.sock" );
 
-      //all commands are defined as methods
-      client.get("hamid", [&](parser_t parsed) {
-        std::cout <<"get hamid =>" << parsed->to_string()<< std::endl;
-      });
-   };
-
-   //if you want tcp_socket
-   // client.connect(connect, "127.0.0.1", 6379);
-   client.connect(connect, "/tmp/redis.sock");
-
-   loop.run();
-
+  loop.Run();
   return 0;
 }
 
