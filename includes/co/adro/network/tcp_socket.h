@@ -13,8 +13,8 @@ namespace network{
     public:
       TCPSocket(event_loop::EventLoopEV& io);
       TCPSocket(event_loop::EventLoopEV& io, int fd);
-      bool Bind(const std::string& host, int port);
-      int Connect(const std::string& host, int port);
+      virtual bool Bind(const std::string& host, int port);
+      virtual int Connect(const std::string& host, int port);
     };
 }
 }

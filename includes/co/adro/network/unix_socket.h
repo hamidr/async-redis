@@ -14,8 +14,8 @@ namespace network{
   public:
     UnixSocket(event_loop::EventLoopEV &io);
     UnixSocket(event_loop::EventLoopEV &io, int fd);
-    int Connect(const std::string& path);
-    bool Bind(const std::string& path);
+    virtual int Connect(const std::string& path , int =0 );
+    virtual bool Bind(const std::string& path, int = 0);
 
   };
 

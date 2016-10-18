@@ -18,8 +18,7 @@ namespace redis{
     {
     public:
       RedisClient(event_loop::EventLoopEV &eventIO,network::AsyncSocket* socket,int n = 1);
-      template <typename ...Args>
-      void Connect(const std::function<void(bool)>& handler, Args... args);
+      void Connect(const std::function<void(bool)>& handler, std::string host , int port = 0 );
       void Set(const std::string& key, const std::string& value, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       void Get(const std::string& key, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       void Keys(const std::string& pattern,  std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);

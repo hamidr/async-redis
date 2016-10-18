@@ -14,10 +14,8 @@ RedisClient::RedisClient(event_loop::EventLoopEV &eventIO,network::AsyncSocket* 
   for (int i = 0; i < connPool_.capacity(); ++i)
     connPool_.push_back(std::make_unique<Connection>(evLoop_, socket));
 }
-
-template <typename ...Args>
 void 
-RedisClient::Connect(const std::function<void(bool)>& handler, Args... args) {
+RedisClient::Connect(const std::function<void(bool)>& handler, std::string host , int port ){
   for(auto &conn : connPool_)
     conn->Connect([&](bool res) {
 
@@ -30,8 +28,9 @@ RedisClient::Connect(const std::function<void(bool)>& handler, Args... args) {
           val &= con->IsConnected();
 
         return handler(val);
-      }, args...);
+      }, host , port );
 }
+
 
 void 
 RedisClient::Set(const std::string& key, const std::string& value, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply) {

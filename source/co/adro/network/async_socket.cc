@@ -1,5 +1,4 @@
 #include <co/adro/network/async_socket.h>
-#include <co/adro/event_loop/event_loop_ev.h>
 
 namespace co{
 namespace adro{
@@ -45,7 +44,7 @@ AsyncSocket::Receive(char *data, size_t len)
   return ::recv(fd_, data, len, 0);
 }
 
-inline bool 
+bool 
 AsyncSocket::Listen() 
 {
   return ::listen(fd_, 0) == 0;
@@ -82,34 +81,6 @@ AsyncSocket::AsyncRead(/* char* buffer, uint len, */const std::function<void(con
     });
 }
 
-
-//FIXME TODO implement connect with try number counter and write permision on socket
-template <typename SocketType, typename... Args>
-void 
-AsyncSocket::AsyncConnect(int timeout, std::function<void(bool)> handler, Args... args)
-{
-  if (timeout == 10) // is equal to 1 second
-    return handler(false);
-
-  io_.ASyncTimeout(0.1, [this, timeout, args..., handler]() {
-
-      if (-1 == static_cast<SocketType&>(*this).connect(args...))
-        return this->AsyncConnect<SocketType>(timeout+1, handler, args...);
-
-      handler(IsConnected());
-    });
-}
-
-template <typename SocketType>
-void 
-AsyncSocket::AsyncAccept(const std::function<void(std::shared_ptr<SocketType>)>& cb)
-{
-  return io_.ASyncRead(id_, [&, cb]() {
-      int fd = this->Accept();
-      cb(std::make_shared<SocketType>(io_, fd));
-      this->AsyncAccept(cb);
-    });
-}
 
 bool 
 AsyncSocket::IsConnected() const 

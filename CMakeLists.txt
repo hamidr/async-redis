@@ -64,4 +64,4 @@ install(TARGETS redis_client
 install(DIRECTORY ${PROJECT_INCLUDE_DIR}/ DESTINATION /usr/local/include)
 
 add_executable (test ${CMAKE_SOURCE_DIR}/test/main.cpp)
-target_link_libraries(test redis_client network event_loop ev)
+target_link_libraries(test network redis_client event_loop ev)

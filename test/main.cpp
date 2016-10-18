@@ -3,154 +3,37 @@
 
 #include <co/adro/event_loop/event_loop_ev.h>
 #include <co/adro/event_loop/watchers.h>
-#include <redis_client.hpp>
-#include <parser/base_resp_parser.h>
-#include <network/tcp_socket.hpp>
-#include <network/unix_socket.hpp>
-#include <network/tcp_server.hpp>
+#include <co/adro/redis/redis_client.h>
+#include <co/adro/redis/parser/base_resp_parser.h>
+#include <co/adro/network/tcp_socket.h>
+#include <co/adro/network/unix_socket.h>
+#include <co/adro/network/tcp_server.h>
 
 int main(int argc, char** args)
 {
-   if (argc != 2)
-     return 0;
-
    co::adro::event_loop::EventLoopEV loop;
-   using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::unix_socket<decltype(loop)>>;
-   // using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::tcp_socket<decltype(loop)>>;
-
-   std::unique_ptr<redis_client_t> client_ptr;
-
-
-   async_redis::tcp_server::tcp_server<decltype(loop), async_redis::tcp_server::test_parser> server(loop);
-   int port  = std::stoi(args[1]);
-   server.listen(port);
-
-   try {
-     client_ptr = std::make_unique<redis_client_t>(loop, 1);
-   }
-   catch(...) {
-     std::cerr << "We are so fucked! So fucking fucked!" << std::endl;
-     return -1;
-   }
-
-   redis_client_t& client = *client_ptr;
-
-   using parser_t = typename redis_client_t::parser_t;
-
+   co::adro::redis::RedisClient client(loop , new co::adro::network::UnixSocket(loop) , 1 );
    auto connect = [&](bool res) {
-
      if (!res) {
        std::cout << "didn't connect!" << std::endl;
        return;
      }
 
-     client.set("h1", "value1", [&](parser_t paresed) {
+     client.Set("h1", "value1", [&](std::shared_ptr<co::adro::redis::parser::base_resp_parser> paresed) {
          std::cout << paresed->to_string() << std::endl;
-         client.get("h1", [&](parser_t p) {
+         client.Get("h1", [&](std::shared_ptr<co::adro::redis::parser::base_resp_parser> p) {
              std::cout << p->to_string() << std::endl;
-             client.set("h2", "fooooo", [](parser_t p2) {
+             client.Set("h2", "fooooo", [](std::shared_ptr<co::adro::redis::parser::base_resp_parser> p2) {
                  std::cout << p2->to_string() << std::endl;
                });
            });
        });
 
-     // return;
-
-   for(int i = 0; i< 2; ++i)
-   client.get("hamid", [&](parser_t parsed) {
-       // std::cout <<"get hamid =>" << parsed->to_string() << std::endl;
-
-       for(int i = 0; i< 10; ++i)
-         client.get("hamid", [&](parser_t parsed) {
-             // std::cout <<"get hamid =>" << parsed->to_string()<< std::endl;
-
-             for(int i = 0; i< 10; ++i)
-               client.get("hamid", [&](parser_t parsed) {
-                   // std::cout <<"get hamid =>" << parsed->to_string()<< std::endl;
-                   for(int i = 0; i< 10; ++i)
-                     client.get("hamid", [&](parser_t parsed) {
-                         // std::cout <<"get hamid =>" << parsed->to_string()<< std::endl;
-                       });
-                 });
-           });
-     });
-
-   for(int i = 0; i< 20; ++i)
-     client.set(std::string("key") + std::to_string(i), std::to_string(i), [&](parser_t parsed) {
-       // std::cout <<"set key2 value2 =>" << parsed->to_string() << std::endl;
-         for(int i = 0; i< 10; ++i)
-           client.get("hamid", [&](parser_t parsed) {
-               // std::cout <<"get hamid =>" << parsed->to_string()<< std::endl;
-             });
-     });
-
-   client.keys("*", [](parser_t parsed) {
-       // std::cout <<"keys " << parsed->to_string() << std::endl;
-     });
-
-
-   client.keys("*", [](parser_t parsed) {
-       // std::cout <<"keys " << parsed->to_string() << std::endl;
-     });
-
-   client.hgetall("myhash", [](parser_t parsed) {
-       // std::cout <<"hgetall hello " << parsed->to_string() << std::endl;
-     });
-
-   //TODO:WTF?
-   // for(int i = 0; i< 100; ++i)
-   // client.set("n1"+i, "1", [](std::shared_ptr<IO::base_resp_parser> parsed) {
-   //     // std::cout<< "*" <<"set n1 " << parsed->to_string()  <<"*"<< std::endl;
-   //   });
-
-   client.get("n1", [](parser_t parsed) {
-       // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
-     });
-
-   client.incr("n1", [](parser_t parsed) {
-       // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
-     });
-
-   client.incr("n1", [&](parser_t parsed) {
-       // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
-
-       for(int i = 0; i< 100; ++i)
-         client.incr("n1", [](parser_t parsed) {
-             // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
-           });
-     });
-
-   client.decr("n1", [](parser_t parsed) {
-       // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
-     });
-
-   // for(int i = 0; i< 100; ++i)
-   // client.err([](std::shared_ptr<IO::base_resp_parser> parsed) {
-   //     std::cout <<"err =>" << parsed->to_string()<< std::endl;
-   //   });
-
-   for(int i = 0; i< 100; ++i)
-   client.get("n1", [](parser_t parsed) {
-       // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
-     });
-
-   for(int i = 0; i< 100; ++i)
-   client.hmget("myhash", {"field2"}, [](parser_t parsed) {
-       // std::cout <<"hmget myhash =>" << parsed->to_string()<< std::endl;
-     });
-
-
-   for(int i = 0; i< 100; ++i)
-   client.hmget("myhash", {"field2", "field1"}, [](parser_t parsed) {
-       // std::cout <<"hmget myhash =>" << parsed->to_string()<< std::endl;
-     });
-
      };
 
    // client.connect(connect, "127.0.0.1", 6379);
-   client.connect(connect, "/tmp/redis.sock");
+ client.Connect(connect, "/var/run/redis/redis.sock" );
 
-   loop.Run();
-
+  loop.Run();
   return 0;
 }

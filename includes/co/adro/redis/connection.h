@@ -18,8 +18,7 @@ namespace redis{
     {
     public:
       Connection(event_loop::EventLoopEV &eventLoop, network::AsyncSocket* socket);
-      template<typename ...Args>
-      inline void Connect(Args... args) ;
+      void Connect(std::function<void(bool)> handler , std::string host , int port = 0 );
       bool IsConnected() const;
       inline int Pressure() const ;
       void Send(const std::string& command, const std::function<void(std::shared_ptr<parser::base_resp_parser>)>& reply_cb) ;

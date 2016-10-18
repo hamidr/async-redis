@@ -6,10 +6,9 @@ Connection::Connection(event_loop::EventLoopEV &eventLoop, network::AsyncSocket*
   : eventLoop_(eventLoop), socket_(socket) {
 }
 
-template<typename ...Args>
-inline void 
-Connection::Connect(Args... args) {
-  socket_->template AsyncConnect<network::AsyncSocket>(0, std::forward<Args>(args)...);
+void 
+Connection::Connect(std::function<void(bool)> handler , std::string host , int port){
+  socket_->AsyncConnect(0,handler, host , port );
 }
 
 bool 

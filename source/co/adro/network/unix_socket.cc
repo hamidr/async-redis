@@ -14,7 +14,7 @@ UnixSocket::UnixSocket(event_loop::EventLoopEV &io, int fd)
 {}
 
 int 
-UnixSocket::Connect(const std::string& path) {
+UnixSocket::Connect(const std::string& path , int dump) {
   struct sockaddr_un addr = {0};
   addr.sun_family = AF_UNIX;
   strcpy(addr.sun_path, path.data());
@@ -24,7 +24,7 @@ UnixSocket::Connect(const std::string& path) {
 }
 
 bool 
-UnixSocket::Bind(const std::string& path) {
+UnixSocket::Bind(const std::string& path, int dump) {
   ::unlink(path.data());
 
   struct sockaddr_un addr = {0};
