@@ -1,8 +1,11 @@
-#include "../../includes/parser/bulk_string_parser.h"
+#include <co/adro/redis//parser/bulk_string_parser.h>
 
 
-namespace async_redis {
-namespace parser {
+namespace co{
+namespace adro{
+namespace redis{
+namespace parser{
+
 
 RespType bulk_string_parser::type() const {
   return RespType::BulkStr;
@@ -64,4 +67,7 @@ string bulk_string_parser::to_string() const
   return "BulkStr:"+buffer_;
 }
 
-}}
+}
+}
+}
+}

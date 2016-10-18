@@ -2,11 +2,12 @@
 
 #include <string>
 
-#include "base_resp_parser.h"
+#include <co/adro/redis/parser/base_resp_parser.h>
+namespace co{
+namespace adro{
+namespace redis{
+namespace parser{
 
-namespace async_redis {
-  namespace parser
-  {
     class bulk_string_parser : public base_resp_parser
     {
     public:
@@ -27,5 +28,7 @@ namespace async_redis {
 
       State state_ = State::Number;
     };
-  }
+}
+}
+}
 }

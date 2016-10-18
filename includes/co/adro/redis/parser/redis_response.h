@@ -4,9 +4,10 @@
 
 #include <memory>
 
-namespace async_redis {
-  namespace parser
-  {
+namespace co{
+namespace adro{
+namespace redis{
+namespace parser{
     class redis_response
     {
     public:
@@ -20,5 +21,7 @@ namespace async_redis {
     private:
       parser& parser_;
     };
-  }
+}
+}
+}
 }

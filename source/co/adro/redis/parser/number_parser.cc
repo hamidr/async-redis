@@ -1,8 +1,9 @@
-#include "../../includes/parser/number_parser.h"
+#include <co/adro/redis/parser/number_parser.h>
 
-namespace async_redis {
-namespace parser {
-
+namespace co{
+namespace adro{
+namespace redis{
+namespace parser{
 RespType number_parser::type() const
 {
   return RespType::Num;
@@ -39,4 +40,7 @@ string number_parser::to_string() const {
   return "Num:"+ buffer_;
 }
 
-}}
+}
+}
+}
+}

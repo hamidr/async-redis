@@ -1,8 +1,9 @@
-#include "../../includes/parser/error_parser.h"
+#include <co/adro/redis/parser/error_parser.h>
 
-namespace async_redis {
-namespace parser {
-
+namespace co{
+namespace adro{
+namespace redis{
+namespace parser{
 RespType error_parser::type() const {
   return RespType::Err;
 }
@@ -37,4 +38,7 @@ string error_parser::to_string() const {
   return "Err:" + buffer_;
 }
 
-}}
+}
+}
+}
+}

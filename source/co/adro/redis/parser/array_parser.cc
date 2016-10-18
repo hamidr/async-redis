@@ -1,6 +1,8 @@
-#include "../../includes/parser/array_parser.h"
+#include <co/adro/redis/parser/array_parser.h>
 
-namespace async_redis {
+namespace co {
+namespace adro {
+namespace redis {
 namespace parser {
 
 RespType array_parser::type() const
@@ -118,4 +120,7 @@ string array_parser::to_string() const
   return s + "]";
 }
 
-}}
+}
+}
+}
+}

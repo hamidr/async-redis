@@ -1,10 +1,10 @@
 #pragma once
 
-#include "base_resp_parser.h"
-
-namespace async_redis {
-  namespace parser
-  {
+#include <co/adro/redis/parser/base_resp_parser.h>
+namespace co{
+namespace adro{
+namespace redis{
+namespace parser{
     class error_parser : public base_resp_parser
     {
     public:
@@ -15,5 +15,7 @@ namespace async_redis {
     private:
       string buffer_;
     };
-  }
+}
+}
+}
 }

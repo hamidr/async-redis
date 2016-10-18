@@ -1,6 +1,8 @@
-#include "../../includes/parser/simple_string_parser.h"
+#include <co/adro/redis/parser/simple_string_parser.h>
 
-namespace async_redis {
+namespace co{
+namespace adro{
+namespace redis{
 namespace parser {
 
 simple_string_parser::simple_string_parser()
@@ -46,4 +48,7 @@ std::string simple_string_parser::to_string() const
   return "Str:"+buffer_;
 }
 
-}}
+}
+}
+}
+}

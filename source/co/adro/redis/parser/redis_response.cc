@@ -1,14 +1,15 @@
-#include "../../includes/parser/redis_response.h"
+#include <co/adro/redis/parser/redis_response.h>
 
-#include "../../includes/parser/number_parser.h"
-#include "../../includes/parser/error_parser.h"
-#include "../../includes/parser/bulk_string_parser.h"
-#include "../../includes/parser/array_parser.h"
-#include "../../includes/parser/simple_string_parser.h"
+#include <co/adro/redis/parser/number_parser.h>
+#include <co/adro/redis/parser/error_parser.h>
+#include <co/adro/redis/parser/bulk_string_parser.h>
+#include <co/adro/redis/parser/array_parser.h>
+#include <co/adro/redis/parser/simple_string_parser.h>
 
-namespace async_redis {
-namespace parser {
-
+namespace co{
+namespace adro{
+namespace redis{
+namespace parser{
 redis_response::redis_response(parser &ptr)
   : parser_(ptr)
 {
@@ -59,4 +60,7 @@ inline redis_response::parser redis_response::data() const
   return parser_;
 }
 
-}}
+}
+}
+}
+}

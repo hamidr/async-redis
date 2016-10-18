@@ -2,9 +2,10 @@
 
 #include <string>
 
-namespace async_redis {
-  namespace parser
-  {
+namespace co{
+namespace adro{
+namespace redis{
+namespace parser{
     using std::string;
 
     enum class RespType : char
@@ -23,5 +24,7 @@ namespace async_redis {
       virtual int parse_append(const char*, ssize_t, bool&) = 0;
       virtual std::string to_string() const = 0;
     };
-  }
+}
+}
+}
 }

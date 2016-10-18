@@ -2,9 +2,10 @@
 
 #include "base_resp_parser.h"
 
-namespace async_redis {
-  namespace parser
-  {
+namespace co{
+namespace adro{
+namespace redis{
+namespace parser{
     class simple_string_parser : public base_resp_parser
     {
     public:
@@ -16,5 +17,7 @@ namespace async_redis {
     private:
       std::string buffer_;
     };
-  }
+}
+}
+}
 }

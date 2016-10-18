@@ -3,12 +3,13 @@
 #include <vector>
 #include <memory>
 
-#include "number_parser.h"
-#include "bulk_string_parser.h"
+#include <co/adro/redis/parser/number_parser.h>
+#include <co/adro/redis/parser/bulk_string_parser.h>
 
-namespace async_redis {
-  namespace parser
-  {
+namespace co{
+namespace adro{
+namespace redis{
+namespace parser{
     class array_parser : public base_resp_parser
     {
     public:
@@ -30,5 +31,7 @@ namespace async_redis {
       int size_i_ = 0;
       State state_ = State::Size;
     };
-  }
+}
+}
+}
 }
