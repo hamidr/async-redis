@@ -17,7 +17,7 @@ namespace async_redis {
 
     public:
       using action              = std::function<void()>;
-      using socket_identifier_t = std::unordered_map<socket_id, std::unique_ptr<socket_queue>>::iterator;
+      using socket_identifier_t = socket_queue *;
 
     private:
       struct timer_watcher
@@ -38,6 +38,7 @@ namespace async_redis {
 
         ev_io write_watcher;
         ev_io read_watcher;
+        bool free_me = false;
 
         std::queue<action> write_handlers;
         std::queue<action> read_handlers;
@@ -79,7 +80,6 @@ namespace async_redis {
 
     private:
       struct ev_loop* loop_;
-      std::unordered_map<socket_id, std::unique_ptr<socket_queue>> watchers_;
     };
   }
 }

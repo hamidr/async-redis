@@ -37,21 +37,44 @@ namespace tcp_server {
     }
 
   private:
-    void chunk_received(const char* data, int len, std::shared_ptr<tcp_socket>& socket) {
-      ssize_t acc = 0;
-      bool is_finished = false;
+    void chunk_received(const char* data, int len, std::shared_ptr<tcp_socket>& socket)
+    {
+      std::string command;
 
-      if (len == 0) {
+      if (len <= 0) {
         conns_.erase(socket);
         return;
       }
 
-      socket->async_write("hello world!", [this, &socket]() {
-        loop_.async_timeout(.1, [this, &socket]() {
-          conns_.erase(socket);
-        });
-      });
+      for(int n = 0; n < len; ++n) {
 
+        char c = data[n];
+        switch(c)
+        {
+        case '\r':
+        case '\n':
+          continue;
+          break;
+
+        default:
+          command.push_back(c);
+        }
+      }
+
+      fprintf(stdout, ("cmd: " + command + "\n").data());
+      fflush(stdout);
+
+      if (command == "close") {
+        socket->async_write("good bye!", [this, &socket]() {
+            loop_.async_timeout(1, [this, &socket]() {
+                conns_.erase(socket);
+              });
+          });
+        return; // dont read
+      }
+
+      auto receiver = std::bind(&tcp_server::chunk_received, this, std::placeholders::_1, std::placeholders::_2, socket);
+      socket->async_read(receiver);
     }
 
   private:

@@ -44,9 +44,11 @@ namespace async_redis {
         id_ = io_.watch(fd_);
       }
 
-      inline ~async_socket() {
-        close();
-        io_.unwatch(id_);
+      ~async_socket() {
+        if (is_connected_) {
+          close();
+          io_.unwatch(id_);
+        }
       }
 
       inline int send(const string& data) {
@@ -75,6 +77,9 @@ namespace async_redis {
 
       void async_write(const string& data, const ready_cb_t& cb)
       {
+        if (!is_connected())
+          return;
+
         return io_.async_write(id_, [this, data, cb]() {
             send(data);
             cb();
@@ -83,8 +88,18 @@ namespace async_redis {
 
       void async_read(const recv_cb_t& cb)
       {
+        if (!is_connected())
+          return;
+
         return io_.async_read(id_, [&, cb]() {
             auto l = receive(buffer_, max_length);
+            if (l == 0) {
+              is_connected_ = false;
+              io_.unwatch(id_);
+              id_ = nullptr;
+              close();
+              fd_ = -1;
+            }
             cb(buffer_, l);
           });
       }
@@ -145,7 +160,7 @@ namespace async_redis {
     private:
       bool is_connected_ = false;
       InputOutputHanler& io_;
-      socket_identifier_t id_;
+      socket_identifier_t id_ = nullptr;
       int fd_ = -1;
       enum { max_length = 1024 };
       char buffer_[max_length]; //TODO: move to user land!

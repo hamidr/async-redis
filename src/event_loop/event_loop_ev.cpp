@@ -18,10 +18,8 @@ void event_loop_ev::run()
   ev_run (loop_, 0);
 }
 
-void event_loop_ev::async_write(socket_identifier_t& id, const action& cb)
+void event_loop_ev::async_write(socket_identifier_t& watcher, const action& cb)
 {
-  socket_queue *watcher = id->second.get();
-
   auto &handlers = watcher->write_handlers;
   handlers.push(cb);
 
@@ -31,10 +29,8 @@ void event_loop_ev::async_write(socket_identifier_t& id, const action& cb)
   }
 }
 
-void event_loop_ev::async_read(socket_identifier_t& id, const action& cb)
+void event_loop_ev::async_read(socket_identifier_t& watcher, const action& cb)
 {
-  socket_queue *watcher = id->second.get();
-
   auto &handlers = watcher->read_handlers;
   handlers.push(cb);
 
@@ -50,14 +46,20 @@ void event_loop_ev::async_timeout(double time, const action& cb )
   ev_timer_start (loop_, &w->timer);
 }
 
-void event_loop_ev::read_handler(EV_P_ ev_io* w, int revents) {
-  /* LOG_THIS; */
+void event_loop_ev::read_handler(EV_P_ ev_io* w, int revents)
+{
   if (!(revents & EV_READ)) {
     // LOG_ERR("WRONG EVENT ON read_handler");
     return;
   }
 
   socket_queue* sq = reinterpret_cast<socket_queue*>(w->data);
+
+  if (sq->free_me) {
+    delete sq;
+    return;
+  }
+
   auto &handlers = sq->read_handlers;
 
   if (handlers.size() != 0)
@@ -69,17 +71,25 @@ void event_loop_ev::read_handler(EV_P_ ev_io* w, int revents) {
 
   if (handlers.size() == 0)
     ev_io_stop(loop, &sq->read_watcher);
+
+  if (sq->free_me)
+    delete sq;
 }
 
 void event_loop_ev::write_handler(EV_P_ ev_io* w, int revents)
 {
-  /* LOG_THIS; */
   if (!(revents & EV_WRITE)) {
     // LOG_ERR("WRONG EVENT ON read_handler");
     return;
   }
 
   socket_queue* sq = reinterpret_cast<socket_queue*>(w->data);
+
+  if (sq->free_me) {
+    delete sq;
+    return;
+  }
+
   auto &handlers = sq->write_handlers;
 
   if (handlers.size() != 0)
@@ -91,6 +101,9 @@ void event_loop_ev::write_handler(EV_P_ ev_io* w, int revents)
 
   if (handlers.size() == 0)
     ev_io_stop(loop, &sq->write_watcher);
+
+  if (sq->free_me)
+    delete sq;
 }
 
 void event_loop_ev::timer_handler(EV_P_ ev_timer* w, int revents)
@@ -102,31 +115,24 @@ void event_loop_ev::timer_handler(EV_P_ ev_timer* w, int revents)
 
 void event_loop_ev::stop(ev_io& io)
 {
-  /* LOG_THIS; */
+  ev_clear_pending(loop_, &io);
   ev_io_stop(loop_, &io);
 }
 
 void event_loop_ev::start(ev_io& io)
 {
-  /* LOG_THIS; */
   ev_io_start(loop_, &io);
 }
 
 event_loop_ev::socket_identifier_t event_loop_ev::watch(int fd)
 {
-  auto iter = watchers_.find(fd);
-
-  if (iter == watchers_.end()) {
-    auto w = watchers_.emplace(fd, std::make_unique<event_loop_ev::socket_queue>(*this, fd));
-    return w.first;
-  }
-
-  return iter;
+  socket_identifier_t ptr = new event_loop_ev::socket_queue(*this, fd);
+  return ptr;
 }
 
 void event_loop_ev::unwatch(socket_identifier_t& id)
 {
-  watchers_.erase(id);
+  id->free_me = true;
 }
 
 }}

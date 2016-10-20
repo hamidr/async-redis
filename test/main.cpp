@@ -43,12 +43,27 @@ int main(int argc, char** args)
        return;
      }
 
-     client.set("h1", "value1", [&](parser_t paresed) {
+     client.set("h1", "wwww", [&](parser_t paresed) {
          std::cout << paresed->to_string() << std::endl;
          client.get("h1", [&](parser_t p) {
              std::cout << p->to_string() << std::endl;
-             client.set("h2", "fooooo", [](parser_t p2) {
-                 std::cout << p2->to_string() << std::endl;
+
+             client.set("wtff", "hello", [&](parser_t paresed) {
+                 client.get("wtff", [](parser_t p2) {
+                     std::cout << p2->to_string() << std::endl;
+                   });
+
+                 client.get("h1", [](parser_t p2) {
+                     std::cout << p2->to_string() << std::endl;
+                   });
+
+                 client.get("wtff", [&](parser_t p2) {
+                     std::cout << p2->to_string() << std::endl;
+
+                     client.get("h1", [](parser_t p2) {
+                         std::cout << p2->to_string() << std::endl;
+                       });
+                   });
                });
            });
        });
