@@ -60,6 +60,10 @@ install(TARGETS redis_client
   LIBRARY DESTINATION /usr/local/lib/
   ARCHIVE DESTINATION /usr/local/lib/
   )
+install(TARGETS network
+  LIBRARY DESTINATION /usr/local/lib/
+  ARCHIVE DESTINATION /usr/local/lib/
+  )
 
 install(DIRECTORY ${PROJECT_INCLUDE_DIR}/ DESTINATION /usr/local/include)
 

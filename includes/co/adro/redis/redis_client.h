@@ -24,8 +24,10 @@ namespace redis{
       void Keys(const std::string& pattern,  std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       void HGetAll(const std::string& field, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       void HMGet(const std::string& hash_name, std::vector<std::string> fields, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
+      void MGet(std::vector<std::string> keys, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       void Incr(const std::string& field,  std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       void Decr(const std::string& field,  std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
+      void Sort( std::string hash_name , std::vector<std::string> keys,std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       //just to cause error!
       void Err( std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       // all the commands

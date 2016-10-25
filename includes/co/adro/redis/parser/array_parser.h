@@ -16,6 +16,8 @@ namespace parser{
       RespType type() const override;
       int parse_append(const char* chunk, ssize_t length, bool& is_finished) override;
       string to_string() const override;
+      bool IsArray() override {return true;} 
+      std::vector<std::shared_ptr<base_resp_parser>> GetArray() override;
 
     private:
       enum State {
@@ -25,7 +27,7 @@ namespace parser{
         Empty
       };
 
-      std::vector<std::unique_ptr<base_resp_parser>> tree_;
+      std::vector<std::shared_ptr<base_resp_parser>> tree_;
 
       string size_;
       int size_i_ = 0;

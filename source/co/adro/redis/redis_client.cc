@@ -51,6 +51,26 @@ void
 RedisClient::HGetAll(const std::string& field, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply) {
   Send({"hgetall", field}, reply);
 }
+void 
+RedisClient::MGet( std::vector<std::string> fields, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply) {
+  std::string req;
+  for (auto &field : fields)
+    req += field + " ";
+
+  Send({"mget",  req}, reply);
+}
+
+void 
+RedisClient::Sort( std::string hash_name, std::vector<std::string> fields, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply) {
+  std::string req;
+  for (auto &field : fields)
+    req += "Get " + field + " ";
+
+  Send({"sort "+hash_name+" by nosort",  req}, reply);
+}
+
+
+
 
 void 
 RedisClient::HMGet(const std::string& hash_name, std::vector<std::string> fields, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply) {
