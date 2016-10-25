@@ -66,7 +66,9 @@ void
 AsyncSocket::AsyncWrite(const std::string& data, const std::function<void()>& cb) 
 {
   return io_.ASyncWrite(id_, [this, data, cb]() {
-      Send(data);
+      int res = Send(data);
+      if(res < 0 )
+        return ; 
       cb();
     });
 }
