@@ -30,11 +30,11 @@ namespace redis{
       void Sort( std::string hash_name , std::vector<std::string> keys,std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       //just to cause error!
       void Err( std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
+      void Send(const std::vector<std::string>& elems, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       // all the commands
       // with awesome good interfaces for libraries
 
     private:
-      void Send(const std::vector<std::string>& elems, std::function<void(std::shared_ptr<parser::base_resp_parser> )> reply);
       Connection& GetConnection();
     private:
       std::vector<std::unique_ptr<Connection>> connPool_;
