@@ -77,9 +77,15 @@ void
 AsyncSocket::AsyncRead(/* char* buffer, uint len, */const std::function<void(const char*, int)>& cb) 
 {
   return io_.ASyncRead(id_, [&, /* len, */ cb]() {
+
+      std::string buf ; 
       char b[1024];
-      auto l = Receive(b, 1023);
-      cb(b, l);
+      int l = 1023 ; 
+      while( l == 1023 ) {
+         l = Receive(b, 1023);
+         buf.append(b , l );
+      }
+      cb(buf.data(), buf.size());
     });
 }
 
