@@ -48,7 +48,7 @@ void event_loop_ev::async_timeout(double time, const action& cb )
 
 void event_loop_ev::read_handler(EV_P_ ev_io* w, int revents)
 {
-  if (!(revents & EV_READ)) {
+  if (revents & EV_ERROR) {
     // LOG_ERR("WRONG EVENT ON read_handler");
     return;
   }
@@ -78,7 +78,7 @@ void event_loop_ev::read_handler(EV_P_ ev_io* w, int revents)
 
 void event_loop_ev::write_handler(EV_P_ ev_io* w, int revents)
 {
-  if (!(revents & EV_WRITE)) {
+  if (revents & EV_ERROR) {
     // LOG_ERR("WRONG EVENT ON read_handler");
     return;
   }
@@ -133,6 +133,7 @@ event_loop_ev::socket_identifier_t event_loop_ev::watch(int fd)
 void event_loop_ev::unwatch(socket_identifier_t& id)
 {
   id->free_me = true;
+  id = nullptr;
 }
 
 }}

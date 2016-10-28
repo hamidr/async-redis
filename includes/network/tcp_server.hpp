@@ -30,14 +30,14 @@ namespace tcp_server {
     }
 
     void accept(std::shared_ptr<tcp_socket> socket) {
-      auto receiver = std::bind(&tcp_server::chunk_received, this, std::placeholders::_1, std::placeholders::_2, socket);
-      socket->async_read(receiver);
+      auto receiver = std::bind(&tcp_server::chunk_received, this, std::placeholders::_1, socket);
+      socket->async_read(buffer_, max_buffer_length, receiver);
 
       conns_.emplace(socket, nullptr);
     }
 
   private:
-    void chunk_received(const char* data, int len, std::shared_ptr<tcp_socket>& socket)
+    void chunk_received(int len, std::shared_ptr<tcp_socket>& socket)
     {
       std::string command;
 
@@ -48,7 +48,7 @@ namespace tcp_server {
 
       for(int n = 0; n < len; ++n) {
 
-        char c = data[n];
+        char c = buffer_[n];
         switch(c)
         {
         case '\r':
@@ -73,8 +73,8 @@ namespace tcp_server {
         return; // dont read
       }
 
-      auto receiver = std::bind(&tcp_server::chunk_received, this, std::placeholders::_1, std::placeholders::_2, socket);
-      socket->async_read(receiver);
+      auto receiver = std::bind(&tcp_server::chunk_received, this, std::placeholders::_1, socket);
+      socket->async_read(buffer_, max_buffer_length, receiver);
     }
 
   private:
@@ -83,6 +83,8 @@ namespace tcp_server {
     socket_t listener_;
     InputOutputHandler& loop_;
     std::unordered_map<socket_t, void*> conns_;
+    enum { max_buffer_length = 1024 };
+    char buffer_[max_buffer_length];
   };
 
 }

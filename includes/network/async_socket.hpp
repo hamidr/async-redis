@@ -27,7 +27,7 @@ namespace async_redis {
     {
     public:
       using socket_identifier_t  = typename InputOutputHanler::socket_identifier_t;
-      using recv_cb_t         = std::function<void (const char*, int)>;
+      using recv_cb_t         = std::function<void (int)>;
       using ready_cb_t        = std::function<void ()>;
       using connect_handler_t = std::function<void (bool)>;
 
@@ -71,8 +71,11 @@ namespace async_redis {
         return ::accept(fd_, nullptr, nullptr);
       }
 
-      inline bool close() {
-        return ::close(fd_) == 0;
+      bool close() {
+        auto res = ::close(fd_) == 0;
+        is_connected_ = false;
+        fd_ = -1;
+        return res;
       }
 
       void async_write(const string& data, const ready_cb_t& cb)
@@ -86,21 +89,18 @@ namespace async_redis {
           });
       }
 
-      void async_read(const recv_cb_t& cb)
+      void async_read(char *buffer, int max_len, const recv_cb_t& cb)
       {
         if (!is_connected())
           return;
 
-        return io_.async_read(id_, [&, cb]() {
-            auto l = receive(buffer_, max_length);
+        return io_.async_read(id_, [&, buffer, max_len,  cb]() {
+            auto l = receive(buffer, max_len);
             if (l == 0) {
-              is_connected_ = false;
               io_.unwatch(id_);
-              id_ = nullptr;
               close();
-              fd_ = -1;
             }
-            cb(buffer_, l);
+            cb(l);
           });
       }
 
@@ -162,8 +162,6 @@ namespace async_redis {
       InputOutputHanler& io_;
       socket_identifier_t id_ = nullptr;
       int fd_ = -1;
-      enum { max_length = 1024 };
-      char buffer_[max_length]; //TODO: move to user land!
     };
   }
 }
