@@ -65,7 +65,7 @@ namespace tcp_server {
       fflush(stdout);
 
       if (command == "close") {
-        socket->async_write("good bye!", [this, &socket]() {
+        socket->async_write("good bye!", [this, &socket](ssize_t l) {
             loop_.async_timeout(1, [this, &socket]() {
                 conns_.erase(socket);
               });

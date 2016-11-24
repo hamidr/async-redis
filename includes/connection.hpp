@@ -35,20 +35,33 @@ namespace async_redis {
       }
 
       void send(const string& command, const reply_cb_t& reply_cb) {
+        //accumilate requests and then send them
+        buffer_write_ += command;
+        req_queue_.emplace(reply_cb, nullptr);
 
-        socket_->async_write(command, [this, reply_cb]() {
-            req_queue_.emplace(reply_cb, nullptr);
+        if (!write_queued_)
+          socket_->async_write(buffer_write_, std::bind(&connection::request_recieved, this, std::placeholders::_1));
 
-            if (req_queue_.size() == 1)
-              socket_->async_read(data_, max_data_size, std::bind(&connection::reply_received, this, std::placeholders::_1));
-          });
+        if (req_queue_.size() == 1)
+          socket_->async_read(data_, max_data_size, std::bind(&connection::reply_received, this, std::placeholders::_1));
+
+        write_queued_ = true;
       }
 
     private:
+      void request_recieved(ssize_t sent_chunk_len) {
+        write_queued_ = false;
+        buffer_write_.erase(0, sent_chunk_len);
+
+        if (buffer_write_.size())
+          socket_->async_write(buffer_write_, std::bind(&connection::request_recieved, this, std::placeholders::_1));
+      }
+
       void reply_received(int len) {
         ssize_t acc = 0;
 
-        while (acc < len && req_queue_.size()) {
+        while (acc < len && req_queue_.size())
+        {
           auto& request = req_queue_.front();
 
           auto &cb = std::get<0>(request);
@@ -67,11 +80,13 @@ namespace async_redis {
           }
         }
 
-        if (req_queue_.size() != 0)
+        if (req_queue_.size())
           socket_->async_read(data_, max_data_size, std::bind(&connection::reply_received, this, std::placeholders::_1));
       }
 
     private:
+      string buffer_write_;
+      bool write_queued_ = false;
       std::unique_ptr<SocketType> socket_;
       InputOutputHandler& event_loop_;
       std::queue<std::tuple<reply_cb_t, parser_t>> req_queue_;

@@ -81,6 +81,14 @@ namespace async_redis {
         send({"decr", field}, reply);
       }
 
+      void ping(reply_cb_t reply) {
+        send({"ping"}, reply);
+      }
+
+      void select(uint catalog, reply_cb_t reply) {
+        send({"select", std::to_string(catalog)}, reply);
+      }
+
       //just to cause error!
       void err(reply_cb_t reply) {
         send({"set 1"}, reply);

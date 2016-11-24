@@ -43,10 +43,26 @@ int main(int argc, char** args)
        return;
      }
 
-     client.set("h1", "wwww", [&](parser_t paresed) {
-         std::cout << paresed->to_string() << std::endl;
-         client.get("h1", [&](parser_t p) {
-             std::cout << p->to_string() << std::endl;
+     client.select(0, []{});
+
+     client.set("h2", "wwww2", [&](parser_t p) {
+         //std::cout << "set h2 " << p->to_string() << std::endl << std::endl;
+       });
+     client.ping([&](parser_t p) {
+         //std::cout << "ping "<< p->to_string() << std::endl << std::endl;
+       });
+     client.get("h3", [&](parser_t p) {
+         //std::cout << "get h3 "<< p->to_string() << std::endl << std::endl;
+       });
+     client.ping([&](parser_t p) {
+         //std::cout << "ping "<<p->to_string() << std::endl << std::endl;
+       });
+
+
+     client.set("h4", "wwww", [&](parser_t paresed) {
+         //std::cout << "h4 www "<<paresed->to_string() << std::endl << std::endl;
+         client.get("h5", [&](parser_t p) {
+             //std::cout << "get h5 " <<p->to_string() << std::endl << std::endl;
 
              client.set("wtff", "hello", [&](parser_t paresed) {
                  client.get("wtff", [](parser_t p2) {

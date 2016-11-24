@@ -27,8 +27,8 @@ namespace async_redis {
     {
     public:
       using socket_identifier_t  = typename InputOutputHanler::socket_identifier_t;
-      using recv_cb_t         = std::function<void (int)>;
-      using ready_cb_t        = std::function<void ()>;
+      using recv_cb_t         = std::function<void (ssize_t)>;
+      using ready_cb_t        = std::function<void (ssize_t)>;
       using connect_handler_t = std::function<void (bool)>;
 
       async_socket(InputOutputHanler& io)
@@ -45,21 +45,18 @@ namespace async_redis {
       }
 
       ~async_socket() {
-        if (is_connected_) {
           close();
-          io_.unwatch(id_);
-        }
       }
 
-      inline int send(const string& data) {
+      inline ssize_t send(const string& data) {
         return ::send(fd_, data.data(), data.size(), 0);
       }
 
-      inline int send(const char *data, size_t len) {
+      inline ssize_t send(const char *data, size_t len) {
         return ::send(fd_, data, len, 0);
       }
 
-      inline int receive(char *data, size_t len) {
+      inline ssize_t receive(char *data, size_t len) {
         return ::recv(fd_, data, len, 0);
       }
 
@@ -72,6 +69,12 @@ namespace async_redis {
       }
 
       bool close() {
+        if (!is_connected_)
+          return true;
+
+        if(id_)
+          io_.unwatch(id_);
+
         auto res = ::close(fd_) == 0;
         is_connected_ = false;
         fd_ = -1;
@@ -80,12 +83,11 @@ namespace async_redis {
 
       void async_write(const string& data, const ready_cb_t& cb)
       {
-        if (!is_connected())
+        if (!is_connected() || data.size() == 0)
           return;
 
-        return io_.async_write(id_, [this, data, cb]() {
-            send(data);
-            cb();
+        return io_.async_write(id_, [this, &data, cb]() {
+            cb(send(data));
           });
       }
 
@@ -96,10 +98,9 @@ namespace async_redis {
 
         return io_.async_read(id_, [&, buffer, max_len,  cb]() {
             auto l = receive(buffer, max_len);
-            if (l == 0) {
-              io_.unwatch(id_);
+            if (l == 0)
               close();
-            }
+
             cb(l);
           });
       }
