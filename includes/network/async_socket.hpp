@@ -83,11 +83,16 @@ namespace async_redis {
 
       void async_write(const string& data, const ready_cb_t& cb)
       {
-        if (!is_connected() || data.size() == 0)
+        if (!is_connected() || !data.size())
           return;
 
-        return io_.async_write(id_, [this, &data, cb]() {
-            cb(send(data));
+        return io_.async_write(id_, [this, data = std::move(data), cb]() {
+            auto sent_chunk = send(data);
+
+            if (sent_chunk < data.size() && sent_chunk != -1)
+              return async_write(data.substr(sent_chunk, data.size()), cb);
+
+            cb(sent_chunk);
           });
       }
 

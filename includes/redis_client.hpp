@@ -89,25 +89,40 @@ namespace async_redis {
         send({"select", std::to_string(catalog)}, reply);
       }
 
-      //just to cause error!
-      void err(reply_cb_t reply) {
-        send({"set 1"}, reply);
+      void commit_pipeline() {
+        string buffer;
+        std::swap(pipeline_buffer_, buffer);
+        std::vector<reply_cb_t> cbs;
+        pipelined_cbs_.swap(cbs);
+
+        get_connection().pipelined_send(std::move(buffer), std::move(cbs));
       }
 
+      redis_client& pipeline_on() {
+        pipelined_state = true;
+        return *this;
+      }
 
-      // all the commands
-      // with awesome good interfaces for libraries
+      redis_client& pipeline_off() {
+        pipelined_state = false;
+        return *this;
+      }
 
     private:
-      void send(const std::vector<string>& elems, reply_cb_t reply) {
-        auto &conn = get_connection();
+      void send(const std::vector<string>&& elems, reply_cb_t reply) {
         string cmd;
         for (auto &s : elems)
           cmd += s + " ";
 
         cmd += "\r\n";
-        conn.send(cmd, reply);
+
+        if (!pipelined_state)
+          return get_connection().send(std::move(cmd), reply);
+
+        pipeline_buffer_ += cmd;
+        pipelined_cbs_.push_back(std::move(reply));
       }
+
 
       connection_t& get_connection() {
         // LOG_THIS
@@ -120,6 +135,9 @@ namespace async_redis {
       }
 
     private:
+      std::string pipeline_buffer_;
+      bool pipelined_state = false;
+      std::vector<reply_cb_t> pipelined_cbs_;
       std::vector<std::unique_ptr<connection_t>> conn_pool_;
       InputOutputHandler& ev_loop_;
       int round_robin_ctr_ = 0;

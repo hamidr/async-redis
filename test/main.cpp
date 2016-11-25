@@ -42,8 +42,9 @@ int main(int argc, char** args)
        std::cout << "didn't connect!" << std::endl;
        return;
      }
+     client.pipeline_on();
 
-     client.select(0, []{});
+     client.select(0, [](parser_t){});
 
      client.set("h2", "wwww2", [&](parser_t p) {
          //std::cout << "set h2 " << p->to_string() << std::endl << std::endl;
@@ -57,6 +58,9 @@ int main(int argc, char** args)
      client.ping([&](parser_t p) {
          //std::cout << "ping "<<p->to_string() << std::endl << std::endl;
        });
+
+     client.pipeline_off().commit_pipeline();
+     return;
 
 
      client.set("h4", "wwww", [&](parser_t paresed) {
