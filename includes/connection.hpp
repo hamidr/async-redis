@@ -30,8 +30,13 @@ namespace async_redis {
       bool is_connected() const
       { return socket_ && socket_->is_connected(); }
 
-      inline int pressure() const {
-        return req_queue_.size();
+      inline int pressure() const
+      { return req_queue_.size(); }
+
+      void disconnect()
+      {
+        if (socket_->is_connected())
+          socket_->close();
       }
 
       void pipelined_send(string&& pipelined_cmds, std::vector<reply_cb_t>&& callbacks)
@@ -48,7 +53,8 @@ namespace async_redis {
           });
       }
 
-      void send(const string&& command, const reply_cb_t& reply_cb) {
+      void send(const string&& command, const reply_cb_t& reply_cb)
+      {
         bool read_it = !req_queue_.size();
         req_queue_.emplace(reply_cb, nullptr);
 
@@ -61,10 +67,13 @@ namespace async_redis {
         });
       }
 
-    private:
-      void reply_received(int len) {
-        ssize_t acc = 0;
+    protected:
+      void reply_received(ssize_t len)
+      {
+        if (len < 1)
+          return;
 
+        ssize_t acc = 0;
         while (acc < len && req_queue_.size())
         {
           auto& request = req_queue_.front();
@@ -72,27 +81,25 @@ namespace async_redis {
           auto &cb = std::get<0>(request);
           auto &parser = std::get<1>(request);
 
-          if (0 != len && -1 != len) {
+          bool is_finished = false;
+          acc += ParserPolicy(parser).append_chunk(data_ + acc, len - acc, is_finished);
 
-            bool is_finished = false;
-            acc += ParserPolicy(parser).append_chunk(data_ + acc, len - acc, is_finished);
+          if (!is_finished)
+            break;
 
-            if (!is_finished)
-              break;
-
-            cb(parser);
-            req_queue_.pop(); //free the resources
-          }
+          cb(parser);
+          req_queue_.pop(); //free the resources
         }
 
         if (req_queue_.size())
           socket_->async_read(data_, max_data_size, std::bind(&connection::reply_received, this, std::placeholders::_1));
       }
 
-    private:
+    protected:
       std::unique_ptr<SocketType> socket_;
-      InputOutputHandler& event_loop_;
       std::queue<std::tuple<reply_cb_t, parser_t>> req_queue_;
+
+      InputOutputHandler& event_loop_;
       enum { max_data_size = 1024 };
       char data_[max_data_size];
     };

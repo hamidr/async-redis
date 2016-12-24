@@ -109,7 +109,6 @@ int array_parser::parse_append(const char* chunk, ssize_t length, bool& is_finis
 
 string array_parser::to_string() const
 {
-
   string s = "[";
 
   for (auto &leaf : tree_)

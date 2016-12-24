@@ -60,8 +60,8 @@ namespace async_redis {
         return ::recv(fd_, data, len, 0);
       }
 
-      inline bool listen() {
-        return ::listen(fd_, 0) == 0;
+      inline bool listen(int backlog = 0) {
+        return ::listen(fd_, backlog) == 0;
       }
 
       inline int accept() {
@@ -81,33 +81,37 @@ namespace async_redis {
         return res;
       }
 
-      void async_write(const string& data, const ready_cb_t& cb)
+      bool async_write(const string& data, const ready_cb_t& cb)
       {
         if (!is_connected() || !data.size())
-          return;
+          return false;
 
-        return io_.async_write(id_, [this, data = std::move(data), cb]() {
+        io_.async_write(id_, [this, data = std::move(data), cb]() -> void {
             auto sent_chunk = send(data);
 
             if (sent_chunk < data.size() && sent_chunk != -1)
-              return async_write(data.substr(sent_chunk, data.size()), cb);
+              async_write(data.substr(sent_chunk, data.size()), cb);
 
             cb(sent_chunk);
           });
+
+        return true;
       }
 
-      void async_read(char *buffer, int max_len, const recv_cb_t& cb)
+      bool async_read(char *buffer, int max_len, const recv_cb_t& cb)
       {
         if (!is_connected())
-          return;
+          return false;
 
-        return io_.async_read(id_, [&, buffer, max_len,  cb]() {
+        io_.async_read(id_, [&, buffer, max_len,  cb]() -> void {
             auto l = receive(buffer, max_len);
             if (l == 0)
               close();
 
             cb(l);
           });
+
+        return true;
       }
 
       template <typename SocketType, typename... Args>
@@ -151,6 +155,7 @@ namespace async_redis {
         id_ = io_.watch(fd_);
       }
 
+      //TODO: well i guess retry with create_socket in these functions
       int connect_to(socket_t* socket_addr, int len) {
         int ret = ::connect(fd_, socket_addr, len);
         if (!ret)

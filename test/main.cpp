@@ -10,36 +10,31 @@
 
 int main(int argc, char** args)
 {
-   if (argc != 2)
-     return 0;
+  //if (argc != 2)
+  // return 0;
+
+  // using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::unix_socket<decltype(loop)>>;
+  using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::tcp_socket<decltype(loop)>>;
 
    async_redis::event_loop::event_loop_ev loop;
-   using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::unix_socket<decltype(loop)>>;
-   // using redis_client_t = async_redis::redis_impl::redis_client<decltype(loop), async_redis::network::tcp_socket<decltype(loop)>>;
+   using sentinel_t = async_redis::redis_sentinel<loop, async_redis::network::tcp_socket<decltype(loop)>>;
+   sentinel_t sentinel;
 
-   std::unique_ptr<redis_client_t> client_ptr;
+   std::vector<std::pair<std::string, int>> sentinel_addresses = {
+     {"192.168.2.43", 26379},
+     {"192.168.2.43", 26378}
+   };
 
 
-   async_redis::tcp_server::tcp_server<decltype(loop)> server(loop);
-   int port  = std::stoi(args[1]);
-   server.listen(port);
+   using parser_t = typename sentinel_t::redis_client_t::parser_t;
 
-   try {
-     client_ptr = std::make_unique<redis_client_t>(loop, 1);
-   }
-   catch(...) {
-     std::cerr << "We are so fucked! So fucking fucked!" << std::endl;
-     return -1;
-   }
+   sentinel.connect(sentinel_addresses, [&](bool res) {
 
-   redis_client_t& client = *client_ptr;
-
-   using parser_t = typename redis_client_t::parser_t;
-
-   auto connect = [&](bool res) {
+    auto &client = sentinel.get_master();
+    auto &slave_client = sentinel.get_slave();
 
      if (!res) {
-       std::cout << "didn't connect!" << std::endl;
+       //std::cout << "didn't connect!" << std::endl << std::endl;
        return;
      }
      client.pipeline_on();
@@ -47,16 +42,16 @@ int main(int argc, char** args)
      client.select(0, [](parser_t){});
 
      client.set("h2", "wwww2", [&](parser_t p) {
-         //std::cout << "set h2 " << p->to_string() << std::endl << std::endl;
+         std::cout << "set h2 " << p->to_string() << std::endl << std::endl;
        });
      client.ping([&](parser_t p) {
-         //std::cout << "ping "<< p->to_string() << std::endl << std::endl;
+         std::cout << "ping "<< p->to_string() << std::endl << std::endl;
        });
      client.get("h3", [&](parser_t p) {
-         //std::cout << "get h3 "<< p->to_string() << std::endl << std::endl;
+         std::cout << "get h3 "<< p->to_string() << std::endl << std::endl;
        });
      client.ping([&](parser_t p) {
-         //std::cout << "ping "<<p->to_string() << std::endl << std::endl;
+         std::cout << "ping "<<p->to_string() << std::endl << std::endl;
        });
 
      client.pipeline_off().commit_pipeline();
@@ -64,125 +59,125 @@ int main(int argc, char** args)
 
 
      client.set("h4", "wwww", [&](parser_t paresed) {
-         //std::cout << "h4 www "<<paresed->to_string() << std::endl << std::endl;
+         std::cout << "h4 www "<<paresed->to_string() << std::endl << std::endl;
          client.get("h5", [&](parser_t p) {
-             //std::cout << "get h5 " <<p->to_string() << std::endl << std::endl;
+             std::cout << "get h5 " <<p->to_string() << std::endl << std::endl;
 
              client.set("wtff", "hello", [&](parser_t paresed) {
                  client.get("wtff", [](parser_t p2) {
-                     std::cout << p2->to_string() << std::endl;
+                     std::cout << p2->to_string() << std::endl << std::endl;
                    });
 
                  client.get("h1", [](parser_t p2) {
-                     std::cout << p2->to_string() << std::endl;
+                     std::cout << p2->to_string() << std::endl << std::endl;
                    });
 
                  client.get("wtff", [&](parser_t p2) {
-                     std::cout << p2->to_string() << std::endl;
+                     std::cout << p2->to_string() << std::endl << std::endl;
 
                      client.get("h1", [](parser_t p2) {
-                         std::cout << p2->to_string() << std::endl;
+                         std::cout <<"h1" <<p2->to_string() << std::endl << std::endl;
                        });
                    });
                });
            });
        });
 
-     // return;
 
    for(int i = 0; i< 2; ++i)
    client.get("hamid", [&](parser_t parsed) {
-       // std::cout <<"get hamid =>" << parsed->to_string() << std::endl;
+       //std::cout <<"get hamid =>" << parsed->to_string() << std::endl << std::endl;
 
        for(int i = 0; i< 10; ++i)
          client.get("hamid", [&](parser_t parsed) {
-             // std::cout <<"get hamid =>" << parsed->to_string()<< std::endl;
+             //std::cout <<"get hamid =>" << parsed->to_string()<< std::endl << std::endl;
 
              for(int i = 0; i< 10; ++i)
                client.get("hamid", [&](parser_t parsed) {
-                   // std::cout <<"get hamid =>" << parsed->to_string()<< std::endl;
+                   //std::cout <<"get hamid =>" << parsed->to_string()<< std::endl << std::endl;
                    for(int i = 0; i< 10; ++i)
                      client.get("hamid", [&](parser_t parsed) {
-                         // std::cout <<"get hamid =>" << parsed->to_string()<< std::endl;
+                         //std::cout <<"get hamid =>" << parsed->to_string()<< std::endl << std::endl;
                        });
                  });
            });
      });
 
-   for(int i = 0; i< 20; ++i)
-     client.set(std::string("key") + std::to_string(i), std::to_string(i), [&](parser_t parsed) {
-       // std::cout <<"set key2 value2 =>" << parsed->to_string() << std::endl;
-         for(int i = 0; i< 10; ++i)
-           client.get("hamid", [&](parser_t parsed) {
-               // std::cout <<"get hamid =>" << parsed->to_string()<< std::endl;
-             });
-     });
+
+   // for(int i = 0; i< 20; ++i)
+   //   client.set(std::string("key") + std::to_string(i), std::to_string(i), [&](parser_t parsed) {
+   //     //std::cout <<"set key2 value2 =>" << parsed->to_string() << std::endl << std::endl;
+   //       for(int i = 0; i< 10; ++i)
+   //         client.get("hamid", [&](parser_t parsed) {
+   //             //std::cout <<"get hamid =>" << parsed->to_string()<< std::endl << std::endl;
+   //           });
+   //   });
 
    client.keys("*", [](parser_t parsed) {
-       // std::cout <<"keys " << parsed->to_string() << std::endl;
+       //std::cout <<"keys " << parsed->to_string() << std::endl << std::endl;
      });
 
 
    client.keys("*", [](parser_t parsed) {
-       // std::cout <<"keys " << parsed->to_string() << std::endl;
+       //std::cout <<"keys " << parsed->to_string() << std::endl << std::endl;
      });
 
    client.hgetall("myhash", [](parser_t parsed) {
-       // std::cout <<"hgetall hello " << parsed->to_string() << std::endl;
+       //std::cout <<"hgetall hello " << parsed->to_string() << std::endl << std::endl;
      });
 
    //TODO:WTF?
    // for(int i = 0; i< 100; ++i)
    // client.set("n1"+i, "1", [](std::shared_ptr<IO::base_resp_parser> parsed) {
-   //     // std::cout<< "*" <<"set n1 " << parsed->to_string()  <<"*"<< std::endl;
+   //     // //std::cout<< "*" <<"set n1 " << parsed->to_string()  <<"*"<< std::endl << std::endl;
    //   });
 
    client.get("n1", [](parser_t parsed) {
-       // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
+       //std::cout <<"get n1 =>" << parsed->to_string()<< std::endl << std::endl;
      });
 
    client.incr("n1", [](parser_t parsed) {
-       // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
+       //std::cout <<"get n1 =>" << parsed->to_string()<< std::endl << std::endl;
      });
 
    client.incr("n1", [&](parser_t parsed) {
-       // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
+       //std::cout <<"get n1 =>" << parsed->to_string()<< std::endl << std::endl;
 
        for(int i = 0; i< 100; ++i)
          client.incr("n1", [](parser_t parsed) {
-             // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
+             //std::cout <<"get n1 =>" << parsed->to_string()<< std::endl << std::endl;
            });
      });
 
    client.decr("n1", [](parser_t parsed) {
-       // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
+       // //std::cout <<"get n1 =>" << parsed->to_string()<< std::endl << std::endl;
      });
 
    // for(int i = 0; i< 100; ++i)
    // client.err([](std::shared_ptr<IO::base_resp_parser> parsed) {
-   //     std::cout <<"err =>" << parsed->to_string()<< std::endl;
+   //     //std::cout <<"err =>" << parsed->to_string()<< std::endl << std::endl;
    //   });
 
-   for(int i = 0; i< 100; ++i)
+   for(int i = 0; i< 600; ++i)
    client.get("n1", [](parser_t parsed) {
-       // std::cout <<"get n1 =>" << parsed->to_string()<< std::endl;
+       // //std::cout <<"get n1 =>" << parsed->to_string()<< std::endl << std::endl;
      });
 
    for(int i = 0; i< 100; ++i)
    client.hmget("myhash", {"field2"}, [](parser_t parsed) {
-       // std::cout <<"hmget myhash =>" << parsed->to_string()<< std::endl;
+       // //std::cout <<"hmget myhash =>" << parsed->to_string()<< std::endl << std::endl << std::endl << std::endl;
      });
 
 
    for(int i = 0; i< 100; ++i)
    client.hmget("myhash", {"field2", "field1"}, [](parser_t parsed) {
-       // std::cout <<"hmget myhash =>" << parsed->to_string()<< std::endl;
+       //std::cout <<"hmget myhash =>" << parsed->to_string()<< std::endl << std::endl << std::endl << std::endl;
      });
 
      };
 
-   // client.connect(connect, "127.0.0.1", 6379);
-   client.connect(connect, "/tmp/redis.sock");
+   client.connect(connect, "127.0.0.1", 6379);
+   // client.connect(connect, "/tmp/redis.sock");
 
    loop.run();
 

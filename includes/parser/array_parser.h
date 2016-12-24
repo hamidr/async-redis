@@ -15,6 +15,10 @@ namespace async_redis {
       RespType type() const override;
       int parse_append(const char* chunk, ssize_t length, bool& is_finished) override;
       string to_string() const override;
+      void map(const caller_t& fn) override {
+        for(auto &c : tree_)
+          fn(*c);
+      };
 
     private:
       enum State {
