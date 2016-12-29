@@ -27,6 +27,10 @@ namespace async_redis {
         socket_->template async_connect<SocketType>(0, std::forward<Args>(args)...);
       }
 
+      ~connection() {
+        disconnect();
+      }
+
       bool is_connected() const
       { return socket_ && socket_->is_connected(); }
 

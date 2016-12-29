@@ -17,7 +17,7 @@ namespace async_redis {
 
     public:
       using action              = std::function<void()>;
-      using socket_identifier_t = socket_queue *;
+      using socket_identifier_t = std::shared_ptr<socket_queue>;
 
     private:
       struct timer_watcher
@@ -38,7 +38,6 @@ namespace async_redis {
 
         ev_io write_watcher;
         ev_io read_watcher;
-        bool free_me = false;
 
         std::queue<action> write_handlers;
         std::queue<action> read_handlers;
@@ -51,6 +50,14 @@ namespace async_redis {
 
           write_watcher.data = this;
           read_watcher.data = this;
+        }
+
+        void free() {
+          decltype(write_handlers) a;
+          decltype(read_handlers) b;
+
+          write_handlers.swap(a);
+          read_handlers.swap(b);
         }
 
         ~socket_queue() {

@@ -30,7 +30,7 @@ namespace async_redis {
 
       template<typename ...Args>
       inline void connect(Args... args) {
-        this->connect(std::forward<Args>(args)...);
+        connection_t::connect(std::forward<Args>(args)...);
       }
 
       inline bool is_connected() const
@@ -87,7 +87,7 @@ namespace async_redis {
         start_cmd += "\r\n";
         stop_cmd += "\r\n";
 
-        if (set_watcher_cb(std::move(watch_cb)))
+        if (!set_watcher_cb(std::move(watch_cb)))
           return false;
 
         this->send(std::move(start_cmd),
@@ -135,10 +135,7 @@ namespace async_redis {
           }
 
           if (!res) {
-            this->send(std::move(stop_cmd), [this](parser_t&& value) {
-              call_watcher(value, State::StopResult);
-            });
-
+            this->send(std::move(stop_cmd), std::bind(&monitor::call_watcher, this, std::placeholders::_1, State::StopResult));
             return;
           }
         }
@@ -157,7 +154,7 @@ namespace async_redis {
 
     private:
       std::unique_ptr<watcher_cb_t> watcher_;
-      parser_t parser_ = nullptr;
+      parser_t parser_;
     };
 
   }

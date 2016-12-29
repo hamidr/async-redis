@@ -1,4 +1,5 @@
 #include "../../includes/parser/error_parser.h"
+#include <iostream>
 
 namespace async_redis {
 namespace parser {

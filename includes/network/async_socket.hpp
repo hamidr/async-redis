@@ -45,7 +45,7 @@ namespace async_redis {
       }
 
       ~async_socket() {
-          close();
+        close();
       }
 
       inline ssize_t send(const string& data) {
@@ -83,8 +83,10 @@ namespace async_redis {
 
       bool async_write(const string& data, const ready_cb_t& cb)
       {
-        if (!is_connected() || !data.size())
+        if (!is_connected() || !data.size()) {
+          throw std::runtime_error("not conncted! write");
           return false;
+        }
 
         io_.async_write(id_, [this, data = std::move(data), cb]() -> void {
             auto sent_chunk = send(data);
@@ -100,8 +102,10 @@ namespace async_redis {
 
       bool async_read(char *buffer, int max_len, const recv_cb_t& cb)
       {
-        if (!is_connected())
+        if (!is_connected()) {
+          throw std::runtime_error("not conncted! read");
           return false;
+        }
 
         io_.async_read(id_, [&, buffer, max_len,  cb]() -> void {
             auto l = receive(buffer, max_len);
@@ -124,6 +128,8 @@ namespace async_redis {
 
             if (-1 == static_cast<SocketType&>(*this).connect(args...))
               return this->async_connect<SocketType>(timeout+1, handler, args...);
+            else
+              id_ = io_.watch(fd_);
 
             handler(is_connected());
           });
@@ -151,8 +157,6 @@ namespace async_redis {
 
         if (-1 == fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK))
           throw nonblocking_socket_exception();
-
-        id_ = io_.watch(fd_);
       }
 
       //TODO: well i guess retry with create_socket in these functions

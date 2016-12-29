@@ -42,6 +42,11 @@ namespace async_redis {
           conn->connect(std::bind(&redis_client::check_conn_connected, this, handler, std::placeholders::_1), args...);
       }
 
+      void disconnect() {
+        for(auto &conn : conn_pool_)
+          conn->disconnect();
+      }
+
       void set(const string& key, const string& value, reply_cb_t reply) {
         send({"set", key, value}, reply);
       }
@@ -78,11 +83,12 @@ namespace async_redis {
         send({"ping"}, reply);
       }
 
-      void select(uint catalog, reply_cb_t reply) {
-        send({"select", std::to_string(catalog)}, reply);
-      }
+      //TODO: wtf?! doesnt make sense with multiple connections!
+      // void select(uint catalog, reply_cb_t&& reply) {
+      //   send({"select", std::to_string(catalog)}, reply);
+      // }
 
-      void publish(const string& channel, const string& msg, reply_cb_t reply) {
+      void publish(const string& channel, const string& msg, reply_cb_t&& reply) {
         send({"publish", channel, msg}, reply);
       }
 
@@ -107,7 +113,8 @@ namespace async_redis {
 
 
     private:
-      void send(const std::vector<string>&& elems, const reply_cb_t& reply) {
+      void send(const std::vector<string>&& elems, const reply_cb_t& reply)
+      {
         if (!is_connected_)
           throw connect_exception();
 
@@ -143,7 +150,7 @@ namespace async_redis {
         for(auto &con : conn_pool_)
           val &= con->is_connected();
 
-        if (val) {
+        if (!val) {
           for(auto &con : conn_pool_)
             con->disconnect();
         }

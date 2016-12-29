@@ -14,15 +14,16 @@ namespace async_redis {
     template<typename InputOutputHandler>
     class sentinel
     {
-      using redis_resp_t = ::async_redis::parser::redis_response;
-      using parser_t     = redis_resp_t::parser;
       using socket_t     = ::async_redis::network::tcp_socket<InputOutputHandler>;
       using connect_cb_t = typename socket_t::connect_handler_t;
 
+      using redis_resp_t = ::async_redis::parser::redis_response;
       using monitor_t    = monitor<InputOutputHandler, socket_t, redis_resp_t>;
       using connection_t = connection<InputOutputHandler, socket_t, redis_resp_t>;
 
     public:
+      using parser_t     = redis_resp_t::parser;
+
       sentinel(InputOutputHandler &event_loop)
         : conn_(std::make_unique<connection_t>(event_loop)),
           stream_(std::make_unique<monitor_t>(event_loop))
@@ -47,13 +48,23 @@ namespace async_redis {
       // void reset();
       // void flushconfig();
 
+
+      inline
+      bool failover(const string& clustername, typename connection_t::reply_cb_t&& reply)
+      {
+        return if_connected_do(
+          [&]() -> bool {
+            return send({std::string("sentinel failover ") + clustername}, std::move(reply));
+          }
+        );
+      }
+
       inline
       bool ping(typename connection_t::reply_cb_t&& reply)
       {
         return if_connected_do(
           [&]() -> bool {
-            conn_->send({"ping"}, std::move(reply));
-            return true; //TODO: return with send! fix send.
+            return send({"ping"}, std::move(reply));
           }
         );
       }
@@ -96,16 +107,15 @@ namespace async_redis {
       {
         return if_connected_do(
           [&]() -> bool {
-            send_master_addr_by_name(cluster_name, std::move(cb));
-            return true;
+            return send_master_addr_by_name(cluster_name, std::move(cb));
           }
         );
       }
 
     private:
-      void send_master_addr_by_name(const string& cluster_name, cb_addr_by_name_t&& cb)
+      bool send_master_addr_by_name(const string& cluster_name, cb_addr_by_name_t&& cb)
       {
-        conn_->send(string("SENTINEL get-master-addr-by-name ") + cluster_name + "\r\n",
+        return send(string("SENTINEL get-master-addr-by-name ") + cluster_name + "\r\n",
           [cb = std::move(cb)](parser_t parsed_value)
           {
             using ::async_redis::parser::RespType;
@@ -122,14 +132,14 @@ namespace async_redis {
               [&elems, &addr, &port](const parser::base_resp_parser& val)
               {
                 switch(elems)
-                  {
-                  case 0:
-                    addr = val.to_string();
-                    break;
-                  case 1:
-                    port = std::stoi(val.to_string());
-                    break;
-                  }
+                {
+                case 0:
+                  addr = val.to_string();
+                  break;
+                case 1:
+                  port = std::stoi(val.to_string());
+                  break;
+                }
 
                 ++elems;
               }
@@ -160,6 +170,7 @@ namespace async_redis {
               break;
 
             default:
+              //TODO: do sth
               std::cout << "wtffFFF" << std::endl;
             }
 
@@ -202,6 +213,18 @@ namespace async_redis {
 
         connected_ = 0;
         connector(is_connected_);
+      }
+
+      bool send(std::list<string>&& words, typename connection_t::reply_cb_t&& reply)
+      {
+        string cmd = words.front();
+        words.pop_front();
+        for(auto &w : words)
+          cmd += " " + w;
+        cmd += "\r\n";
+
+        conn_->send(std::move(cmd), std::move(reply));
+        return true; //TODO: return with send! fix send.
       }
 
     private:

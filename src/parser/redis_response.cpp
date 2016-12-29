@@ -16,7 +16,8 @@ redis_response::redis_response(parser &ptr)
 
 int redis_response::append_chunk(const char* chunk, ssize_t length, bool &is_finished) {
   /* LOG_THIS */
-  if (is_fresh()) {
+  if (is_fresh())
+  {
     switch(static_cast<RespType>(chunk[0]))
     {
     case RespType::Err:
