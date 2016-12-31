@@ -7,6 +7,7 @@
 #include <functional>
 #include <connection.hpp>
 #include <memory>
+#include <istream>
 
 namespace async_redis {
   namespace redis_impl
@@ -41,13 +42,11 @@ namespace async_redis {
         return true;
       }
 
-      // void failover();
       // void sentinels();
       // void masters();
       // void slaves();
       // void reset();
       // void flushconfig();
-
 
       inline
       bool failover(const string& clustername, typename connection_t::reply_cb_t&& reply)
@@ -69,29 +68,26 @@ namespace async_redis {
         );
       }
 
-      using cb_watch_master_change_t = std::function<bool (const string&, int)>;
+      using cb_watch_master_change_t = std::function<void (const std::vector<std::string>&& info)>;
 
       inline
       bool watch_master_change(cb_watch_master_change_t&& fn)
       {
         return if_connected_do(
           [&]()-> bool {
-            using State = typename monitor_t::State;
+            using State = typename monitor_t::EventState;
 
             return stream_->subscribe({"+switch-master"},
-              [fn = std::move(fn)](parser_t event, State state) -> bool
+              [fn = std::move(fn)](const string& channel, parser_t event, State state) -> void
               {
+                event->print();
                 switch(state)
                 {
-                  case State::StartResult:
-                    return true;
+                case State::Stream:
+                  return fn(parse_watch_master_change(event));
 
-                  case State::StopResult:
-                    return false;
-
-                  case State::EventStream:
-                    auto &&res = parse_watch_master_change(event);
-                    return fn(std::get<0>(res), std::get<1>(res));
+                default:
+                  break;
                 }
               }
             );
@@ -150,42 +146,24 @@ namespace async_redis {
         );
       }
 
-      static std::tuple<std::string, int> parse_watch_master_change(const parser_t& event)
+      static
+      std::vector<std::string> parse_watch_master_change(const parser_t& event)
       {
-        string ip;
-        int port = -1;
+        std::vector<string> words;
+        std::istringstream iss(event->to_string());
 
-        int size = 0;
-        event->map(
-          [&](const parser::base_resp_parser& elem) {
+        std::string s;
+        while ( getline( iss, s, ' ' ) )
+          words.push_back(s);
 
-            switch(size)
-            {
-            case 0:
-              ip = elem.to_string();
-              break;
-
-            case 1:
-              port = std::stoi(elem.to_string());
-              break;
-
-            default:
-              //TODO: do sth
-              std::cout << "wtffFFF" << std::endl;
-            }
-
-            ++size;
-          }
-        );
-
-        return std::make_tuple(ip, port);
+        return words;
       }
 
     private:
       inline
       bool if_connected_do(std::function<bool ()>&& fn)
       {
-        if (is_connected())
+        if (!is_connected())
           return false;
 
         return fn();

@@ -20,7 +20,7 @@ struct monitor_test
   using parser         = async_redis::parser::redis_response;
   using monitor_t      = async_redis::redis_impl::monitor<event_loop_ev, tcp_socket_t, parser>;
   using parsed_t       = typename parser::parser;
-  using State          = typename monitor_t::State;
+  using State          = typename monitor_t::EventState;
 
   using redis_client_t = async_redis::redis_impl::redis_client<event_loop_ev, tcp_socket_t>;
 
@@ -46,7 +46,7 @@ struct monitor_test
   void check_monitor_connected(bool status) {
     if (status) {
       std::cout << "Monitor connected!" << std::endl;
-      my_monitor->subscribe({"ping"}, std::bind(&monitor_test::watch_hello_msgs, this, std::placeholders::_1, std::placeholders::_2));
+      my_monitor->psubscribe({"ping"}, std::bind(&monitor_test::watch_hello_msgs, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     } else {
       std::cout << "MONITOR DIDNT CONNECT!" << std::endl;
       my_redis->disconnect();
@@ -54,27 +54,27 @@ struct monitor_test
   }
 
 
-  bool watch_hello_msgs(parsed_t event, State state)
+  void watch_hello_msgs(const std::string& channel, parsed_t event, State state)
   {
     switch(state)
     {
-    case State::StartResult:
+    case State::Sub:
       std::cout << "watch StartResult" << std::endl;
       send_ping(0);
       break;
 
-    case State::EventStream:
+    case State::Stream:
       std::cout << "watch EventStream" << std::endl;
-      std::cout << event->to_string() << std::endl;
-      return play_with_event(event);
+      if (play_with_event(event))
+        return;
+      my_monitor->punsubscribe({"ping"}, std::bind(&monitor_test::watch_hello_msgs, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
       break;
 
-    default:
+    case State::Unsub:
       std::cout << "StopResult" << std::endl;
       break;
     }
-
-    return true;
   }
 
   void send_ping(long n)
@@ -93,26 +93,12 @@ struct monitor_test
     std::cout << "Ponged by " << event->to_string() << std::endl;
     int n = 0;
 
-    bool status = true;
-    event->map(
-      [&status, &n, this](const async_redis::parser::base_resp_parser& e)
-      {
-        n++;
-        switch(n)
-        {
-        case 3:
-          long x = std::stol(e.to_string());
-
-          if (x != n_ping)
-            return send_ping(x+1);
-
-          status = false;
-          break;
-        }
-      }
-    );
-
-    return status;
+    long x = std::stol(event->to_string());
+    if (x != n_ping) {
+      send_ping(x+1);
+      return true;
+    }
+    return false;
   }
 
 private:
@@ -128,31 +114,44 @@ struct sentinel_test
   using parser_t   = typename sentinel_t::parser_t;
 
   sentinel_test(event_loop_ev& ev)
-    : my_sen(std::make_unique<sentinel_t>(ev))
+    : io_(ev),
+      my_sen1(std::make_unique<sentinel_t>(ev)),
+      my_sen2(std::make_unique<sentinel_t>(ev))
   {
-    my_sen->connect("192.168.2.65", 8080, std::bind(&sentinel_test::check_connected, this, std::placeholders::_1));
+    my_sen1->connect("192.168.2.65", 8080, std::bind(&sentinel_test::check_connected, this, std::placeholders::_1));
+    my_sen2->connect("192.168.2.65", 8081, std::bind(&sentinel_test::check_connected, this, std::placeholders::_1));
   }
 
   void check_connected(bool result)
   {
     if (result) {
-      my_sen->watch_master_change(std::bind(&sentinel_test::master_changed, this, std::placeholders::_1, std::placeholders::_2));
+      my_sen1->watch_master_change(std::bind(&sentinel_test::master_changed, this, std::placeholders::_1));
+      my_sen2->watch_master_change(std::bind(&sentinel_test::master_changed, this, std::placeholders::_1));
       return;
     }
 
     std::cout << "sentinel not connected!" << std::endl;
   }
 
-  bool master_changed(const std::string& ip, int port)
+  void master_changed(const std::vector<std::string>&& info)
   {
-    my_sen->ping([](parser_t p) {
-        
+    for(auto &w : info)
+      std::cout << w << std::endl;
+
+    io_.async_timeout(10, [this]() {
+        my_sen1->failover("redis-cluster", std::bind(&sentinel_test::forced_failover, this, std::placeholders::_1));
       });
-    return true;
+  }
+
+  void forced_failover(parser_t value)
+  {
+    value->print();
   }
 
 private:
-  std::unique_ptr<sentinel_t> my_sen;
+  std::unique_ptr<sentinel_t> my_sen1;
+  std::unique_ptr<sentinel_t> my_sen2;
+  event_loop_ev &io_;
 };
 
 int main(int argc, char** args)
@@ -162,7 +161,7 @@ int main(int argc, char** args)
 
   event_loop_ev loop;
 
-  monitor_test monitor_mock(loop);
+  // monitor_test monitor_mock(loop);
   sentinel_test sentinel_mock(loop);
 
   // using unix_socket_t = async_redis::network::unix_socket<event_loop_ev>;

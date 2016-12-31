@@ -20,6 +20,14 @@ namespace async_redis {
           fn(*c);
       };
 
+      std::shared_ptr<base_resp_parser>& nth(int index) {
+        return tree_[index];
+      }
+
+      int size() const {
+        return tree_.size();
+      }
+
     private:
       enum State {
         Size = 0,
@@ -28,7 +36,7 @@ namespace async_redis {
         Empty
       };
 
-      std::vector<std::unique_ptr<base_resp_parser>> tree_;
+      std::vector<std::shared_ptr<base_resp_parser>> tree_;
 
       string size_;
       int size_i_ = 0;

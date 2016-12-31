@@ -99,7 +99,7 @@ namespace async_redis {
           socket_->async_read(data_, max_data_size, std::bind(&connection::reply_received, this, std::placeholders::_1));
       }
 
-    protected:
+    private:
       std::unique_ptr<SocketType> socket_;
       std::queue<std::tuple<reply_cb_t, parser_t>> req_queue_;
 

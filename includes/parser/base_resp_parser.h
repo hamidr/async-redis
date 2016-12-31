@@ -2,6 +2,7 @@
 
 #include <string>
 #include <functional>
+#include <iostream>
 
 namespace async_redis {
   namespace parser
@@ -27,6 +28,27 @@ namespace async_redis {
       virtual std::string to_string() const = 0;
       virtual void map(const caller_t &fn) {
         fn(*this);
+      }
+
+      void print() {
+        string type;
+        switch(this->type()) {
+        case RespType::BulkStr:
+          type = "bulkstr";
+            break;
+        case RespType::Arr:
+          type = "array";
+          break;
+        case RespType::Str:
+          type = "str";
+          break;
+        case RespType::Num:
+          type = "num";
+          break;
+        default:
+          break;
+        }
+        std::cout << "Type: " << type << " Value: " << to_string() << std::endl;
       }
     };
   }

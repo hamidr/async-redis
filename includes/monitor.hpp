@@ -1,7 +1,9 @@
 #pragma once
 
-#include <connection.hpp>
+#include <parser/array_parser.h>
+
 #include <list>
+#include <cassert>
 
 namespace async_redis {
   namespace redis_impl
@@ -9,116 +11,206 @@ namespace async_redis {
     using std::string;
 
     template<typename InputOutputHandler, typename SocketType, typename ParserPolicy>
-    class monitor : protected connection<InputOutputHandler, SocketType, ParserPolicy>
+    class monitor
     {
-      using connection_t = connection<InputOutputHandler, SocketType, ParserPolicy>;
-      using reply_cb_t   = typename connection_t::reply_cb_t;
-
     public:
-      enum State {
-        StartResult,
-        StopResult,
-        EventStream
+      enum EventState {
+        Sub,
+        Unsub,
+        Stream
       };
 
       using parser_t     = typename ParserPolicy::parser;
-      using watcher_cb_t = std::function<bool (parser_t, State)>;
+      using watcher_cb_t = std::function<void (const string&, parser_t, EventState)>;
 
       monitor(InputOutputHandler &event_loop)
-        : connection_t(event_loop)
+        : io_(event_loop),
+          socket_(std::make_unique<SocketType>(event_loop))
       { }
 
       template<typename ...Args>
       inline void connect(Args... args) {
-        connection_t::connect(std::forward<Args>(args)...);
+        socket_->template async_connect<SocketType>(0, std::forward<Args>(args)...);
       }
 
       inline bool is_connected() const
-      { return connection_t::is_connected(); }
+      { return socket_->is_connected(); }
 
       bool is_watching() const
-      { return this->is_connected() && watcher_; }
+      { return this->is_connected() && is_watching_; }
 
-      void disconnect()
-      {
-        watcher_ = nullptr;
-        connection_t::disconnect();
+      void disconnect() {
+        if(socket_->is_connected())
+          socket_->close();
+
+        pwatchers_.clear();
+        watchers_.clear();
+        is_watching_ = false;
       }
-
-      //TODO: Handle monitor later!
-      // bool monitoring(watcher_cb_t&& reply_cb)
 
       bool psubscribe(const std::list<string>& channels, watcher_cb_t&& cb)
       {
-        return watch("psubscribe", "punsubscribe", channels, std::move(cb));
+        assert(channels.size());
+
+        string start_cmd = "psubscribe";
+
+        for(auto &ch : channels) {
+          start_cmd += " " + ch;
+          pwatchers_.emplace(ch, cb);
+        }
+
+        start_cmd += "\r\n";
+        return send_and_receive(std::move(start_cmd));
       }
 
       bool subscribe(const std::list<string>& channels, watcher_cb_t&& cb)
       {
-        return watch("subscribe", "unsubscribe", channels, std::move(cb));
+        assert(channels.size());
+
+        string cmd = "subscribe";
+
+        for(auto &ch : channels) {
+          cmd += " " + ch;
+          watchers_.emplace(ch, cb);
+        }
+
+        cmd += "\r\n";
+        return send_and_receive(std::move(cmd));
+      }
+
+      bool unsubscribe(const std::list<string>& channels, watcher_cb_t&& cb)
+      {
+        assert(channels.size());
+
+        string cmd = "unsubscribe";
+        for(auto &ch : channels)
+          cmd += " " + ch;
+        cmd += "\r\n";
+
+        return send_and_receive(std::move(cmd));
+      }
+
+      bool punsubscribe(const std::list<string>& channels, watcher_cb_t&& cb)
+      {
+        assert(channels.size());
+
+        string cmd = "punsubscribe";
+        for(auto &ch : channels)
+          cmd += " " + ch;
+        cmd += "\r\n";
+
+        return send_and_receive(std::move(cmd));
       }
 
     private:
-      bool set_watcher_cb(watcher_cb_t&& watch_cb)
+      bool send_and_receive(string&& data)
       {
-        if (watcher_)
+        if (!is_connected())
           return false;
 
-        watcher_ = std::make_unique<watcher_cb_t>(std::move(watch_cb));
+        socket_->async_write(data, [this](ssize_t sent_chunk_len) {
+          if (sent_chunk_len == -1)
+            return;
 
+          if (is_watching_)
+            return;
+
+          this->socket_->async_read(
+            this->data_,
+            this->max_data_size,
+            std::bind(
+              &monitor::stream_received,
+              this,
+              std::placeholders::_1
+            )
+          );
+
+          this->is_watching_ = true;
+        });
         return true;
       }
-
-      inline bool call_watcher(parser_t parser, State state)
+      void handle_message_event(parser_t& channel, parser_t& value)
       {
-        return watcher_ ? (*watcher_)(parser, state) : false;
+        const string& ch_key = channel->to_string();
+        auto itr = watchers_.find(ch_key);
+        assert(itr != watchers_.end());
+        itr->second(ch_key, value, EventState::Stream);
       }
 
-      bool watch(string&& start_cmd, string&& stop_cmd, const std::list<string>& channels, watcher_cb_t &&watch_cb)
+      void handle_subscribe_event(parser_t& channel, parser_t& clients)
       {
-        if (!channels.size())
-          return false;
-
-        for(auto &ch : channels) {
-          start_cmd += " " + ch;
-          stop_cmd += " " + ch;
-        }
-
-        start_cmd += "\r\n";
-        stop_cmd += "\r\n";
-
-        if (!set_watcher_cb(std::move(watch_cb)))
-          return false;
-
-        this->send(std::move(start_cmd),
-          [this, stop_cmd = std::move(stop_cmd)](parser_t resp)
-          {
-            if (!call_watcher(std::move(resp), State::StartResult))
-              return;
-
-            this->socket_->async_read(
-              this->data_,
-              this->max_data_size,
-              std::bind(
-                &monitor::stream_received,
-                this,
-                std::move(stop_cmd),
-                std::placeholders::_1
-              )
-            );
-          }
-        );
-
-        return true;
+        const string& ch_key = channel->to_string();
+        auto itr = watchers_.find(ch_key);
+        assert(itr != watchers_.end());
+        itr->second(ch_key, clients, EventState::Sub);
       }
 
-      void stream_received(const string& stop_cmd, ssize_t len)
+      void handle_psubscribe_event(parser_t& channel, parser_t& clients)
+      {
+        const string& ch_key = channel->to_string();
+        auto itr = pwatchers_.find(ch_key);
+        assert(itr != pwatchers_.end());
+        itr->second(ch_key, clients, EventState::Sub);
+      }
+
+      void handle_punsubscribe_event(parser_t& pattern, parser_t& clients)
+      {
+        auto p_key = pattern->to_string();
+        auto itr = pwatchers_.find(p_key);
+        assert(itr != pwatchers_.end());
+        itr->second(p_key, clients, EventState::Unsub);
+        pwatchers_.erase(itr);
+      }
+
+      void handle_unsubscribe_event(parser_t& channel, parser_t& clients)
+      {
+        auto ch_key = channel->to_string();
+        auto itr = watchers_.find(ch_key);
+        assert(itr != watchers_.end());
+        itr->second(ch_key, clients, EventState::Unsub);
+        watchers_.erase(itr);
+      }
+
+      void handle_pmessage_event(parser_t& pattern, parser_t& channel, parser_t& value)
+      {
+        auto itr = pwatchers_.find(pattern->to_string());
+        assert(itr != pwatchers_.end());
+        itr->second(channel->to_string(), value, EventState::Stream);
+      }
+
+      void handle_event(parser_t&& request)
+      {
+        assert(request->type() == async_redis::parser::RespType::Arr);
+
+        auto& event = static_cast<async_redis::parser::array_parser&>(*request);
+
+        assert(event.size() >= 3);
+
+        string type = event.nth(0)->to_string();
+
+        if (type == "message")
+          return handle_message_event(event.nth(1), event.nth(2));
+        else if (type == "pmessage")
+          return handle_pmessage_event(event.nth(1), event.nth(2), event.nth(3));
+        else if (type == "subscribe")
+          return handle_subscribe_event(event.nth(1), event.nth(2));
+        else if (type == "unsubscribe")
+          return handle_unsubscribe_event(event.nth(1), event.nth(2));
+        else if (type == "psubscribe")
+          return handle_psubscribe_event(event.nth(1), event.nth(2));
+        else if (type == "punsubscribe")
+          return handle_punsubscribe_event(event.nth(1), event.nth(2));
+
+        assert(false);
+      }
+
+      void stream_received(ssize_t len)
       {
         if (len < 1)
           return;
 
         ssize_t acc = 0;
-        while (acc < len && watcher_)
+        while (acc < len)
         {
           bool is_finished = false;
           acc += ParserPolicy(parser_).append_chunk(this->data_ + acc, len - acc, is_finished);
@@ -126,18 +218,18 @@ namespace async_redis {
           if (!is_finished)
             break;
 
-          bool res = false;
           { // pass the parser and be done with it
             parser_t event;
             std::swap(event, parser_);
 
-            res = call_watcher(std::move(event), State::EventStream);
+            handle_event(std::move(event));
           }
+        }
 
-          if (!res) {
-            this->send(std::move(stop_cmd), std::bind(&monitor::call_watcher, this, std::placeholders::_1, State::StopResult));
-            return;
-          }
+        // if (!(watchers_.size() || pwatchers_.size()))
+        if (!watchers_.size() && !pwatchers_.size()) {
+          is_watching_ = false;
+          return;
         }
 
         this->socket_->async_read(
@@ -146,15 +238,21 @@ namespace async_redis {
           std::bind(
             &monitor::stream_received,
             this,
-            std::move(stop_cmd),
             std::placeholders::_1
           )
         );
       }
 
     private:
-      std::unique_ptr<watcher_cb_t> watcher_;
       parser_t parser_;
+      std::unordered_map<std::string, watcher_cb_t> watchers_;
+      std::unordered_map<std::string, watcher_cb_t> pwatchers_;
+
+      std::unique_ptr<SocketType> socket_;
+      InputOutputHandler &io_;
+      enum { max_data_size = 1024 };
+      char data_[max_data_size];
+      bool is_watching_ = false;
     };
 
   }
