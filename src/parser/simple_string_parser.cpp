@@ -43,7 +43,7 @@ int simple_string_parser::parse_append(const char* chunk, ssize_t length, bool& 
 
 std::string simple_string_parser::to_string() const
 {
-  return "Str:"+buffer_;
+  return buffer_;
 }
 
 }}

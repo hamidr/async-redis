@@ -22,17 +22,17 @@ int array_parser::parse_append(const char* chunk, ssize_t length, bool& is_finis
       switch(state_)
       {
       case State::Elems:
-        tree_.push_back(std::make_unique<array_parser>());
+        tree_.push_back(std::make_shared<array_parser>());
         break;
       }
       break;
 
     case ':':
-      tree_.push_back(std::make_unique<number_parser>());
+      tree_.push_back(std::make_shared<number_parser>());
       break;
 
     case '$':
-      tree_.push_back(std::make_unique<bulk_string_parser>());
+      tree_.push_back(std::make_shared<bulk_string_parser>());
       break;
 
     case '\r':
@@ -109,7 +109,6 @@ int array_parser::parse_append(const char* chunk, ssize_t length, bool& is_finis
 
 string array_parser::to_string() const
 {
-
   string s = "[";
 
   for (auto &leaf : tree_)

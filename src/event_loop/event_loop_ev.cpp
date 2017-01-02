@@ -1,5 +1,7 @@
 #include "../../includes/event_loop/event_loop_ev.h"
 
+#include <iostream>
+
 namespace async_redis {
 namespace event_loop {
 
@@ -48,62 +50,41 @@ void event_loop_ev::async_timeout(double time, const action& cb )
 
 void event_loop_ev::read_handler(EV_P_ ev_io* w, int revents)
 {
-  if (revents & EV_ERROR) {
-    // LOG_ERR("WRONG EVENT ON read_handler");
+  if (revents & EV_ERROR)
     return;
-  }
 
   socket_queue* sq = reinterpret_cast<socket_queue*>(w->data);
-
-  if (sq->free_me) {
-    delete sq;
-    return;
-  }
-
   auto &handlers = sq->read_handlers;
 
-  if (handlers.size() != 0)
+  if (handlers.size())
   {
     auto &action = handlers.front();
     action();
     handlers.pop();
   }
 
-  if (handlers.size() == 0)
+  if (!handlers.size())
     ev_io_stop(loop, &sq->read_watcher);
-
-  if (sq->free_me)
-    delete sq;
 }
 
 void event_loop_ev::write_handler(EV_P_ ev_io* w, int revents)
 {
-  if (revents & EV_ERROR) {
-    // LOG_ERR("WRONG EVENT ON read_handler");
+  if (revents & EV_ERROR)
     return;
-  }
 
   socket_queue* sq = reinterpret_cast<socket_queue*>(w->data);
 
-  if (sq->free_me) {
-    delete sq;
-    return;
-  }
-
   auto &handlers = sq->write_handlers;
 
-  if (handlers.size() != 0)
+  if (handlers.size())
   {
     auto &action = handlers.front();
     action();
     handlers.pop();
   }
 
-  if (handlers.size() == 0)
+  if (!handlers.size())
     ev_io_stop(loop, &sq->write_watcher);
-
-  if (sq->free_me)
-    delete sq;
 }
 
 void event_loop_ev::timer_handler(EV_P_ ev_timer* w, int revents)
@@ -126,14 +107,12 @@ void event_loop_ev::start(ev_io& io)
 
 event_loop_ev::socket_identifier_t event_loop_ev::watch(int fd)
 {
-  socket_identifier_t ptr = new event_loop_ev::socket_queue(*this, fd);
-  return ptr;
+  return std::make_shared<event_loop_ev::socket_queue>(*this, fd);
 }
 
 void event_loop_ev::unwatch(socket_identifier_t& id)
 {
-  id->free_me = true;
-  id = nullptr;
+  id->stop();
 }
 
 }}

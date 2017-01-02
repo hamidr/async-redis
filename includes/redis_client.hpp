@@ -17,10 +17,11 @@ namespace async_redis {
     class redis_client
     {
       using connection_t = connection<InputOutputHandler, SocketType, ::async_redis::parser::redis_response>;
-      using reply_cb_t = typename connection_t::reply_cb_t;
-      using connect_handler_t = typename async_redis::network::async_socket<SocketType>::connect_handler_t;
+      using reply_cb_t   = typename connection_t::reply_cb_t;
+      using connect_cb_t = typename async_redis::network::async_socket<SocketType>::connect_handler_t;
 
     public:
+      class connect_exception : std::exception {};
       using parser_t = typename connection_t::parser_t;
 
       redis_client(InputOutputHandler &eventIO, int n = 1)
@@ -32,21 +33,18 @@ namespace async_redis {
           conn_pool_.push_back(std::make_unique<connection_t>(ev_loop_));
       }
 
+      bool is_connected() const
+      { return is_connected_; }
+
       template <typename ...Args>
-      void connect(const connect_handler_t& handler, Args... args) {
+      void connect(const connect_cb_t& handler, Args... args) {
         for(auto &conn : conn_pool_)
-          conn->connect([&](bool res) {
+          conn->connect(std::bind(&redis_client::check_conn_connected, this, handler, std::placeholders::_1), args...);
+      }
 
-              ++connected_called_;
-              if (connected_called_ != conn_pool_.size())
-                return;
-
-              bool val = true;
-              for(auto &con : conn_pool_)
-                val &= con->is_connected();
-
-              return handler(val);
-            }, args...);
+      void disconnect() {
+        for(auto &conn : conn_pool_)
+          conn->disconnect();
       }
 
       void set(const string& key, const string& value, reply_cb_t reply) {
@@ -81,41 +79,106 @@ namespace async_redis {
         send({"decr", field}, reply);
       }
 
-      //just to cause error!
-      void err(reply_cb_t reply) {
-        send({"set 1"}, reply);
+      void ping(reply_cb_t reply) {
+        send({"ping"}, reply);
+      }
+
+      //TODO: wtf?! doesnt make sense with multiple connections!
+      // void select(uint catalog, reply_cb_t&& reply) {
+      //   send({"select", std::to_string(catalog)}, reply);
+      // }
+
+      void publish(const string& channel, const string& msg, reply_cb_t&& reply) {
+        send({"publish", channel, msg}, reply);
+      }
+
+      void commit_pipeline() {
+        string buffer;
+        std::swap(pipeline_buffer_, buffer);
+        std::vector<reply_cb_t> cbs;
+        pipelined_cbs_.swap(cbs);
+
+        is_connected_ = get_connection().pipelined_send(std::move(buffer), std::move(cbs));
+        if (!is_connected_) {
+          disconnect();
+          throw connect_exception();
+        }
+      }
+
+      redis_client& pipeline_on() {
+        pipelined_state_ = true;
+        return *this;
+      }
+
+      redis_client& pipeline_off() {
+        pipelined_state_ = false;
+        return *this;
       }
 
 
-      // all the commands
-      // with awesome good interfaces for libraries
-
     private:
-      void send(const std::vector<string>& elems, reply_cb_t reply) {
-        auto &conn = get_connection();
+      void send(const std::vector<string>&& elems, const reply_cb_t& reply)
+      {
+        if (!is_connected_)
+          throw connect_exception();
+
         string cmd;
         for (auto &s : elems)
           cmd += s + " ";
 
         cmd += "\r\n";
-        conn.send(cmd, reply);
+
+        if (!pipelined_state_) {
+          is_connected_ = get_connection().send(std::move(cmd), reply);
+          if(!is_connected_) {
+            disconnect();
+            throw connect_exception();
+          }
+          return;
+        }
+
+        pipeline_buffer_ += cmd;
+        pipelined_cbs_.push_back(std::move(reply));
       }
 
-      connection_t& get_connection() {
-        // LOG_THIS
-
-        auto &con = conn_pool_[round_robin_ctr_++];
-        if (round_robin_ctr_ == conn_pool_.size())
-          round_robin_ctr_ = 0;
+      connection_t& get_connection()
+      {
+        auto &con = conn_pool_[con_rr_ctr_++];
+        if (con_rr_ctr_ == conn_pool_.size())
+          con_rr_ctr_ = 0;
 
         return *con.get();
       }
 
+      void check_conn_connected(const connect_cb_t& handler, bool res)
+      {
+        ++connected_called_;
+        if (connected_called_ != conn_pool_.size())
+          return;
+
+        bool val = true;
+        for(auto &con : conn_pool_)
+          val &= con->is_connected();
+
+        if (!val) {
+          for(auto &con : conn_pool_)
+            con->disconnect();
+        }
+
+        connected_called_ = 0;
+        is_connected_ = val;
+        return handler(val);
+      }
+
     private:
+      std::string pipeline_buffer_;
+      bool pipelined_state_ = false;
+      std::vector<reply_cb_t> pipelined_cbs_;
       std::vector<std::unique_ptr<connection_t>> conn_pool_;
-      InputOutputHandler& ev_loop_;
-      int round_robin_ctr_ = 0;
+      int con_rr_ctr_ = 0;
       int connected_called_ = 0;
+      bool is_connected_ = false;
+      InputOutputHandler& ev_loop_;
     };
   }
 }

@@ -27,8 +27,8 @@ namespace async_redis {
     {
     public:
       using socket_identifier_t  = typename InputOutputHanler::socket_identifier_t;
-      using recv_cb_t         = std::function<void (int)>;
-      using ready_cb_t        = std::function<void ()>;
+      using recv_cb_t         = std::function<void (ssize_t)>;
+      using ready_cb_t        = std::function<void (ssize_t)>;
       using connect_handler_t = std::function<void (bool)>;
 
       async_socket(InputOutputHanler& io)
@@ -45,63 +45,83 @@ namespace async_redis {
       }
 
       ~async_socket() {
-        if (is_connected_) {
-          close();
-          io_.unwatch(id_);
-        }
+        close();
       }
 
-      inline int send(const string& data) {
-        return ::send(fd_, data.data(), data.size(), 0);
+      inline bool is_valid() {
+        return fd_ != -1;
       }
 
-      inline int send(const char *data, size_t len) {
+      inline ssize_t send(const string& data) {
+        return send(data.data(), data.size());
+      }
+
+      inline ssize_t send(const char *data, size_t len) {
         return ::send(fd_, data, len, 0);
       }
 
-      inline int receive(char *data, size_t len) {
+      inline ssize_t receive(char *data, size_t len) {
         return ::recv(fd_, data, len, 0);
       }
 
-      inline bool listen() {
-        return ::listen(fd_, 0) == 0;
+      inline bool listen(int backlog = 0) {
+        return ::listen(fd_, backlog) == 0;
       }
 
       inline int accept() {
         return ::accept(fd_, nullptr, nullptr);
       }
 
-      bool close() {
+      bool close()
+      {
+        if (!is_connected_)
+          return true;
+
+        if(id_)
+          io_.unwatch(id_);
+
         auto res = ::close(fd_) == 0;
         is_connected_ = false;
         fd_ = -1;
         return res;
       }
 
-      void async_write(const string& data, const ready_cb_t& cb)
+      bool async_write(const string& data, const ready_cb_t& cb)
       {
-        if (!is_connected())
-          return;
+        if (!is_connected() || !data.size())
+          return false;
 
-        return io_.async_write(id_, [this, data, cb]() {
-            send(data);
-            cb();
+        io_.async_write(id_, [this, data, cb]() -> void {
+            auto sent_chunk = send(data);
+
+            if(sent_chunk == 0)
+              close();
+
+            if (sent_chunk < data.size() && sent_chunk != -1) {
+              async_write(data.substr(sent_chunk, data.size()), cb);
+              return;
+            }
+
+            cb(sent_chunk);
           });
+
+        return true;
       }
 
-      void async_read(char *buffer, int max_len, const recv_cb_t& cb)
+      bool async_read(char *buffer, int max_len, const recv_cb_t& cb)
       {
         if (!is_connected())
-          return;
+          return false;
 
-        return io_.async_read(id_, [&, buffer, max_len,  cb]() {
+        io_.async_read(id_, [&, buffer, max_len,  cb]() -> void {
             auto l = receive(buffer, max_len);
-            if (l == 0) {
-              io_.unwatch(id_);
+            if (l == 0)
               close();
-            }
+
             cb(l);
           });
+
+        return true;
       }
 
       template <typename SocketType, typename... Args>
@@ -141,14 +161,15 @@ namespace async_redis {
 
         if (-1 == fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK))
           throw nonblocking_socket_exception();
-
-        id_ = io_.watch(fd_);
       }
 
+      //TODO: well i guess retry with create_socket in these functions
       int connect_to(socket_t* socket_addr, int len) {
         int ret = ::connect(fd_, socket_addr, len);
-        if (!ret)
+        if (!ret) {
+          id_ = io_.watch(fd_);
           is_connected_ = true;
+        }
 
         return ret;
       }
@@ -160,7 +181,7 @@ namespace async_redis {
     private:
       bool is_connected_ = false;
       InputOutputHanler& io_;
-      socket_identifier_t id_ = nullptr;
+      socket_identifier_t id_;
       int fd_ = -1;
     };
   }

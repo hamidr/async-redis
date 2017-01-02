@@ -61,7 +61,7 @@ int bulk_string_parser::parse_append(const char* chunk, ssize_t length, bool& is
 
 string bulk_string_parser::to_string() const
 {
-  return "BulkStr:"+buffer_;
+  return buffer_;
 }
 
 }}

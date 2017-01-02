@@ -1,4 +1,5 @@
 #include "../../includes/parser/error_parser.h"
+#include <iostream>
 
 namespace async_redis {
 namespace parser {
@@ -7,11 +8,13 @@ RespType error_parser::type() const {
   return RespType::Err;
 }
 
-int error_parser::parse_append(const char* chunk, ssize_t length, bool& is_finished) {
+int error_parser::parse_append(const char* chunk, ssize_t length, bool& is_finished)
+{
   int ctr = 0;
   char c = chunk[ctr];
+
   while(ctr < length)
-    {
+  {
       switch(c)
         {
         case ':':
@@ -34,7 +37,7 @@ int error_parser::parse_append(const char* chunk, ssize_t length, bool& is_finis
 }
 
 string error_parser::to_string() const {
-  return "Err:" + buffer_;
+  return buffer_;
 }
 
 }}

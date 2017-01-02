@@ -36,7 +36,7 @@ int number_parser::parse_append(const char* chunk, ssize_t length, bool& is_fini
 }
 
 string number_parser::to_string() const {
-  return "Num:"+ buffer_;
+  return buffer_;
 }
 
 }}
