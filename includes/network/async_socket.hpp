@@ -163,21 +163,25 @@ namespace async_redis {
 
         if (-1 == fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK))
           throw nonblocking_socket_exception();
+
+        id_ = io_.watch(fd_);
       }
 
       //TODO: well i guess retry with create_socket in these functions
       int connect_to(socket_t* socket_addr, int len) {
         int ret = ::connect(fd_, socket_addr, len);
-        if (!ret) {
-          id_ = io_.watch(fd_);
+        if (!ret)
           is_connected_ = true;
-        }
 
         return ret;
       }
 
       int bind_to(socket_t* socket_addr, int len) {
-        return ::bind(fd_, socket_addr, len);
+        int b = ::bind(fd_, socket_addr, len);
+        if (!b)
+          is_connected_ = true;
+
+        return b;
       }
 
     private:

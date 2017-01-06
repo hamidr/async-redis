@@ -171,8 +171,8 @@ int main(int argc, char** args)
   event_loop_ev loop;
 
   monitor_test monitor_mock(loop, 100000);
-  // async_redis::tcp_server::tcp_server server(loop);
-  // server.listen(9090);
+  async_redis::tcp_server::tcp_server server(loop);
+  server.listen(9090);
   // sentinel_test sentinel_mock(loop);
 
   // using unix_socket_t = async_redis::network::unix_socket<event_loop_ev>;
@@ -332,7 +332,6 @@ int main(int argc, char** args)
    //     //std::cout <<"hgetall hello " << parsed->to_string() << std::endl << std::endl;
    //   });
 
-   // //TODO:WTF?
    // // for(int i = 0; i< 100; ++i)
    // // client.set("n1"+i, "1", [](std::shared_ptr<IO::base_resp_parser> parsed) {
    // //     // //std::cout<< "*" <<"set n1 " << parsed->to_string()  <<"*"<< std::endl << std::endl;
