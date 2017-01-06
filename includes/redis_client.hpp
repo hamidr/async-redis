@@ -5,14 +5,11 @@
 #include <memory>
 
 #include "connection.hpp"
-#include "network/async_socket.hpp"
-#include "parser/redis_response.h"
 
 namespace async_redis
 {
   using std::string;
 
-  template<typename InputOutputHandler>
   class redis_client
   {
     using reply_cb_t   = connection::reply_cb_t;
@@ -22,13 +19,12 @@ namespace async_redis
     class connect_exception : std::exception {};
     using parser_t = connection::parser_t;
 
-    redis_client(InputOutputHandler &eventIO, int n = 1)
-      : ev_loop_(eventIO)
+    redis_client(event_loop::event_loop_ev &eventIO, int n = 1)
     {
       conn_pool_.reserve(n);
 
       for (int i = 0; i < conn_pool_.capacity(); ++i)
-        conn_pool_.push_back(std::make_unique<connection>(ev_loop_));
+        conn_pool_.push_back(std::make_unique<connection>(eventIO));
     }
 
     bool is_connected() const
@@ -176,6 +172,5 @@ namespace async_redis
     int con_rr_ctr_ = 0;
     int connected_called_ = 0;
     bool is_connected_ = false;
-    InputOutputHandler& ev_loop_;
   };
 }

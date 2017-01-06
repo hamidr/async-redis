@@ -1,7 +1,6 @@
 #include <memory>
 #include <iostream>
 
-#include <event_loop/event_loop_ev.h>
 #include <redis_client.hpp>
 #include <parser/base_resp_parser.h>
 #include <network/tcp_socket.hpp>
@@ -9,17 +8,18 @@
 #include <monitor.hpp>
 #include <sentinel.hpp>
 
+#include <event_loop/event_loop_ev.h>
 
 typedef async_redis::event_loop::event_loop_ev event_loop_ev;
 
 struct monitor_test
 {
   using parser         = async_redis::parser::redis_response;
-  using monitor_t      = async_redis::monitor<event_loop_ev>;
-  using parsed_t       = typename parser::parser;
-  using State          = typename monitor_t::EventState;
+  using monitor_t      = async_redis::monitor;
+  using parsed_t       = parser::parser;
+  using State          = monitor_t::EventState;
 
-  using redis_client_t = async_redis::redis_client<event_loop_ev>;
+  using redis_client_t = async_redis::redis_client;
 
   monitor_test(event_loop_ev &loop, int n = 100)
     : my_monitor(std::make_unique<monitor_t>(loop)),
@@ -115,8 +115,8 @@ private:
 
 struct sentinel_test
 {
-  using sentinel_t = async_redis::redis_impl::sentinel<event_loop_ev>;
-  using parser_t   = typename sentinel_t::parser_t;
+  using sentinel_t = async_redis::sentinel;
+  using parser_t   = sentinel_t::parser_t;
 
   sentinel_test(event_loop_ev& ev)
     : io_(ev),

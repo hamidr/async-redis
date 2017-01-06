@@ -7,7 +7,6 @@
 
 namespace async_redis
 {
-  template<typename InputOutputHandler>
   class monitor
   {
     using async_socket    = network::async_socket;
@@ -25,11 +24,11 @@ namespace async_redis
     using parser_t     = parser::redis_response::parser;
     using watcher_cb_t = std::function<void (const string&, parser_t, EventState)>;
 
-    monitor(InputOutputHandler &event_loop)
+    monitor(event_loop::event_loop_ev &event_loop)
       : io_(event_loop)
     {}
 
-    void connect(typename async_socket::connect_handler_t handler, const std::string& ip, int port)
+    void connect(async_socket::connect_handler_t handler, const std::string& ip, int port)
     {
       if (!socket_ || !socket_->is_valid())
         socket_ = std::make_unique<tcp_socket>(io_);
@@ -37,7 +36,7 @@ namespace async_redis
       socket_->template async_connect<tcp_socket>(0, handler, ip, port);
     }
 
-    void connect(typename async_socket::connect_handler_t handler, const std::string& path)
+    void connect(async_socket::connect_handler_t handler, const std::string& path)
     {
       if (!socket_ || !socket_->is_valid())
         socket_ = std::make_unique<unix_socket>(io_);
@@ -277,7 +276,7 @@ namespace async_redis
     std::unordered_map<std::string, watcher_cb_t> pwatchers_;
 
     std::unique_ptr<async_socket> socket_;
-    InputOutputHandler &io_;
+    event_loop::event_loop_ev &io_;
     enum { max_data_size = 1024 };
     char data_[max_data_size];
     bool is_watching_ = false;
