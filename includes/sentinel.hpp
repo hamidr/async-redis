@@ -20,8 +20,8 @@ namespace async_redis {
       using connect_cb_t = typename socket_t::connect_handler_t;
 
       using redis_resp_t = ::async_redis::parser::redis_response;
-      using monitor_t    = monitor<InputOutputHandler, socket_t, redis_resp_t>;
-      using connection_t = connection<InputOutputHandler, socket_t, redis_resp_t>;
+      using monitor_t    = monitor<InputOutputHandler, socket_t>;
+      using connection_t = connection<InputOutputHandler, socket_t>;
 
 
     public:

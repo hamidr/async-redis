@@ -12,13 +12,7 @@ namespace async_redis {
     public:
       using parser = std::shared_ptr<base_resp_parser>;
 
-      redis_response(parser &ptr);
-      int append_chunk(const char* chunk, ssize_t length, bool &is_finished);
-      inline bool is_fresh() const;
-      inline parser data() const;
-
-    private:
-      parser& parser_;
+      static int append_chunk(parser &, const char*, ssize_t, bool &);
     };
   }
 }

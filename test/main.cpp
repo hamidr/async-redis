@@ -16,11 +16,11 @@ struct monitor_test
 {
   using tcp_socket_t   = async_redis::network::tcp_socket<event_loop_ev>;
   using parser         = async_redis::parser::redis_response;
-  using monitor_t      = async_redis::redis_impl::monitor<event_loop_ev, tcp_socket_t, parser>;
+  using monitor_t      = async_redis::monitor<event_loop_ev, tcp_socket_t>;
   using parsed_t       = typename parser::parser;
   using State          = typename monitor_t::EventState;
 
-  using redis_client_t = async_redis::redis_impl::redis_client<event_loop_ev, tcp_socket_t>;
+  using redis_client_t = async_redis::redis_client<event_loop_ev, tcp_socket_t>;
 
   monitor_test(event_loop_ev &loop, int n = 100)
     : my_monitor(std::make_unique<monitor_t>(loop)),
