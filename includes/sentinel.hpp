@@ -21,7 +21,7 @@ namespace async_redis {
 
       using redis_resp_t = ::async_redis::parser::redis_response;
       using monitor_t    = monitor<InputOutputHandler, socket_t>;
-      using connection_t = connection<InputOutputHandler, socket_t>;
+      using connection_t = connection<InputOutputHandler>;
 
 
     public:

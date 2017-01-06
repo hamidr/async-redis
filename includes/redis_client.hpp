@@ -15,7 +15,7 @@ namespace async_redis
   template<typename InputOutputHandler, typename SocketType>
   class redis_client
   {
-    using connection_t = connection<InputOutputHandler, SocketType>;
+    using connection_t = connection<InputOutputHandler>;
     using reply_cb_t   = typename connection_t::reply_cb_t;
     using connect_cb_t = typename async_redis::network::async_socket<SocketType>::connect_handler_t;
 
