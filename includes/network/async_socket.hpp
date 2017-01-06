@@ -36,15 +36,6 @@ namespace async_redis {
         : io_(io)
       { }
 
-      async_socket(event_loop::event_loop_ev &io, int fd)
-        : io_(io)
-      {
-        fd_ = fd;
-        is_connected_ = true;
-
-        id_ = io_.watch(fd_);
-      }
-
       ~async_socket() {
         close();
       }
@@ -125,8 +116,33 @@ namespace async_redis {
         return true;
       }
 
+      void async_accept(const std::function<void(std::shared_ptr<async_socket>)>& cb)
+      {
+        return io_.async_read(id_, [this, cb]() {
+            int fd = this->accept();
+            auto s = std::make_shared<async_socket>(io_);
+            s->set_fd_socket(fd);
+            cb(s);
+            this->async_accept(cb);
+          });
+      }
+
+      inline
+      bool is_connected() const {
+        return is_connected_;
+      }
+
+    protected:
+      void set_fd_socket(int fd)
+      {
+        fd_ = fd;
+        is_connected_ = true;
+
+        id_ = io_.watch(fd_);
+      }
+
       template <typename SocketType, typename... Args>
-      void async_connect(int timeout, async_socket::connect_handler_t handler, Args... args)
+      void async_connect(int timeout, connect_handler_t handler, Args... args)
       {
         if (timeout == 10) // is equal to 1 second
           return handler(false);
@@ -140,22 +156,7 @@ namespace async_redis {
           });
       }
 
-      template<typename SocketType>
-      void async_accept(const std::function<void(std::shared_ptr<SocketType>)>& cb)
-      {
-        return io_.async_read(id_, [&, cb]() {
-            int fd = this->accept();
-            cb(std::make_shared<SocketType>(io_, fd));
-            this->async_accept(cb);
-          });
-      }
 
-      inline
-      bool is_connected() const {
-        return is_connected_;
-      }
-
-    protected:
       void create_socket(int domain) {
         if (-1 == (fd_ = socket(domain, SOCK_STREAM, 0)))
           throw connect_socket_exception();

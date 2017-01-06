@@ -17,9 +17,10 @@ namespace async_redis {
       }
 
       inline
-      unix_socket(event_loop::event_loop_ev &io, int fd)
-        : async_socket(io, fd)
-      {}
+      void async_connect(const string& path, connect_handler_t handler)
+      {
+        async_socket::template async_connect<unix_socket>(0, handler, path);
+      }
 
       int connect(const string& path) {
         struct sockaddr_un addr = {0};

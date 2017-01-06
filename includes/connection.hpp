@@ -30,7 +30,7 @@ namespace async_redis
       if (!socket_ || !socket_->is_valid())
         socket_ = std::make_unique<tcp_socket>(event_loop_);
 
-      socket_->template async_connect<tcp_socket>(0, handler, ip, port);
+      static_cast<tcp_socket*>(socket_.get())->async_connect(ip, port, handler);
     }
 
     void connect(async_socket::connect_handler_t handler, const std::string& path)
@@ -38,7 +38,7 @@ namespace async_redis
       if (!socket_ || !socket_->is_valid())
         socket_ = std::make_unique<unix_socket>(event_loop_);
 
-      socket_->template async_connect<unix_socket>(0, handler, path);
+      static_cast<unix_socket*>(socket_.get())->async_connect(path, handler);
     }
 
     bool is_connected() const

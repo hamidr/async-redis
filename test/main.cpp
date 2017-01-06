@@ -7,6 +7,7 @@
 #include <network/unix_socket.hpp>
 #include <monitor.hpp>
 #include <sentinel.hpp>
+#include "../examples/tcp_server.hpp"
 
 #include <event_loop/event_loop_ev.h>
 
@@ -169,7 +170,9 @@ int main(int argc, char** args)
 
   event_loop_ev loop;
 
-  monitor_test monitor_mock(loop, 10000);
+  monitor_test monitor_mock(loop, 100000);
+  // async_redis::tcp_server::tcp_server server(loop);
+  // server.listen(9090);
   // sentinel_test sentinel_mock(loop);
 
   // using unix_socket_t = async_redis::network::unix_socket<event_loop_ev>;

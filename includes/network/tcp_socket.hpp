@@ -15,9 +15,11 @@ namespace async_redis {
         this->create_socket(AF_INET);
       }
 
-      tcp_socket(event_loop::event_loop_ev& io, int fd)
-        : async_socket(io, fd)
-      {}
+      inline
+      void async_connect(const string& ip, int port, connect_handler_t handler)
+      {
+        async_socket::template async_connect<tcp_socket>(0, handler, ip, port);
+      }
 
       bool bind(const string& host, int port)
       {
