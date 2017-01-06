@@ -5,19 +5,18 @@
 namespace async_redis {
   namespace network
   {
-    template<typename InputOutputHanler>
-    class tcp_socket : public async_socket<InputOutputHanler>
+    class tcp_socket : public async_socket
     {
 
     public:
-      tcp_socket(InputOutputHanler& io)
-        : async_socket<InputOutputHanler>(io)
+      tcp_socket(event_loop::event_loop_ev& io)
+        : async_socket(io)
       {
         this->create_socket(AF_INET);
       }
 
-      tcp_socket(InputOutputHanler& io, int fd)
-        : async_socket<InputOutputHanler>(io, fd)
+      tcp_socket(event_loop::event_loop_ev& io, int fd)
+        : async_socket(io, fd)
       {}
 
       bool bind(const string& host, int port)

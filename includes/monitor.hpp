@@ -10,9 +10,9 @@ namespace async_redis
   template<typename InputOutputHandler>
   class monitor
   {
-    using async_socket    = network::async_socket<InputOutputHandler>;
-    using tcp_socket      = network::tcp_socket<InputOutputHandler>;
-    using unix_socket     = network::unix_socket<InputOutputHandler>;
+    using async_socket    = network::async_socket;
+    using tcp_socket      = network::tcp_socket;
+    using unix_socket     = network::unix_socket;
 
   public:
     enum EventState {

@@ -11,22 +11,21 @@
 
 namespace async_redis
 {
-  template<typename InputOutputHandler>
   class connection
   {
-    using async_socket    = network::async_socket<InputOutputHandler>;
-    using tcp_socket      = network::tcp_socket<InputOutputHandler>;
-    using unix_socket     = network::unix_socket<InputOutputHandler>;
+    using async_socket    = network::async_socket;
+    using tcp_socket      = network::tcp_socket;
+    using unix_socket     = network::unix_socket;
 
   public:
     using parser_t        = parser::redis_response::parser;
     using reply_cb_t      = std::function<void (parser_t)>;
 
-    connection(InputOutputHandler &event_loop)
+    connection(event_loop::event_loop_ev& event_loop)
       : event_loop_(event_loop) {
     }
 
-    void connect(typename async_socket::connect_handler_t handler, const std::string& ip, int port)
+    void connect(async_socket::connect_handler_t handler, const std::string& ip, int port)
     {
       if (!socket_ || !socket_->is_valid())
         socket_ = std::make_unique<tcp_socket>(event_loop_);
@@ -34,7 +33,7 @@ namespace async_redis
       socket_->template async_connect<tcp_socket>(0, handler, ip, port);
     }
 
-    void connect(typename async_socket::connect_handler_t handler, const std::string& path)
+    void connect(async_socket::connect_handler_t handler, const std::string& path)
     {
       if (!socket_ || !socket_->is_valid())
         socket_ = std::make_unique<unix_socket>(event_loop_);
@@ -116,7 +115,7 @@ namespace async_redis
     std::unique_ptr<async_socket> socket_;
     std::queue<std::tuple<reply_cb_t, parser_t>> req_queue_;
 
-    InputOutputHandler& event_loop_;
+    event_loop::event_loop_ev& event_loop_;
     enum { max_data_size = 1024 };
     char data_[max_data_size];
   };

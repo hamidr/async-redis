@@ -16,12 +16,12 @@ namespace async_redis {
     template<typename InputOutputHandler>
     class sentinel
     {
-      using socket_t     = ::async_redis::network::tcp_socket<InputOutputHandler>;
+      using socket_t     = ::async_redis::network::tcp_socket;
       using connect_cb_t = typename socket_t::connect_handler_t;
 
       using redis_resp_t = ::async_redis::parser::redis_response;
       using monitor_t    = monitor<InputOutputHandler>;
-      using connection_t = connection<InputOutputHandler>;
+      using connection_t = connection;
 
 
     public:

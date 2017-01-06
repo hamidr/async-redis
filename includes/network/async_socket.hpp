@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 
 #include <string>
+#include <event_loop/event_loop_ev.h>
 
 namespace async_redis {
   namespace network
@@ -22,20 +23,20 @@ namespace async_redis {
     class connect_socket_exception : socket_excetion {};
     class nonblocking_socket_exception : socket_excetion {};
 
-    template <typename InputOutputHanler>
     class async_socket
     {
     public:
-      using socket_identifier_t  = typename InputOutputHanler::socket_identifier_t;
+
+      using socket_identifier_t  = event_loop::event_loop_ev::socket_identifier_t;
       using recv_cb_t         = std::function<void (ssize_t)>;
       using ready_cb_t        = std::function<void (ssize_t)>;
       using connect_handler_t = std::function<void (bool)>;
 
-      async_socket(InputOutputHanler& io)
+      async_socket(event_loop::event_loop_ev& io)
         : io_(io)
       { }
 
-      async_socket(InputOutputHanler &io, int fd)
+      async_socket(event_loop::event_loop_ev &io, int fd)
         : io_(io)
       {
         fd_ = fd;
@@ -180,7 +181,7 @@ namespace async_redis {
 
     private:
       bool is_connected_ = false;
-      InputOutputHanler& io_;
+      event_loop::event_loop_ev& io_;
       socket_identifier_t id_;
       int fd_ = -1;
     };

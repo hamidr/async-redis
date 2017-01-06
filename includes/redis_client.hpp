@@ -15,13 +15,12 @@ namespace async_redis
   template<typename InputOutputHandler>
   class redis_client
   {
-    using connection_t = connection<InputOutputHandler>;
-    using reply_cb_t   = typename connection_t::reply_cb_t;
-    using connect_cb_t = typename async_redis::network::async_socket<InputOutputHandler>::connect_handler_t;
+    using reply_cb_t   = connection::reply_cb_t;
+    using connect_cb_t = network::async_socket::connect_handler_t;
 
   public:
     class connect_exception : std::exception {};
-    using parser_t = typename connection_t::parser_t;
+    using parser_t = connection::parser_t;
 
     redis_client(InputOutputHandler &eventIO, int n = 1)
       : ev_loop_(eventIO)
@@ -29,7 +28,7 @@ namespace async_redis
       conn_pool_.reserve(n);
 
       for (int i = 0; i < conn_pool_.capacity(); ++i)
-        conn_pool_.push_back(std::make_unique<connection_t>(ev_loop_));
+        conn_pool_.push_back(std::make_unique<connection>(ev_loop_));
     }
 
     bool is_connected() const
@@ -140,7 +139,7 @@ namespace async_redis
       pipelined_cbs_.push_back(std::move(reply));
     }
 
-    connection_t& get_connection()
+    connection& get_connection()
     {
       auto &con = conn_pool_[con_rr_ctr_++];
       if (con_rr_ctr_ == conn_pool_.size())
@@ -173,7 +172,7 @@ namespace async_redis
     std::string pipeline_buffer_;
     bool pipelined_state_ = false;
     std::vector<reply_cb_t> pipelined_cbs_;
-    std::vector<std::unique_ptr<connection_t>> conn_pool_;
+    std::vector<std::unique_ptr<connection>> conn_pool_;
     int con_rr_ctr_ = 0;
     int connected_called_ = 0;
     bool is_connected_ = false;
