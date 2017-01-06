@@ -26,7 +26,6 @@ namespace async_redis
       : event_loop_(event_loop) {
     }
 
-    inline
     void connect(typename async_socket::connect_handler_t handler, const std::string& ip, int port)
     {
       if (!socket_ || !socket_->is_valid())
@@ -35,7 +34,6 @@ namespace async_redis
       socket_->template async_connect<tcp_socket>(0, handler, ip, port);
     }
 
-    inline
     void connect(typename async_socket::connect_handler_t handler, const std::string& path)
     {
       if (!socket_ || !socket_->is_valid())

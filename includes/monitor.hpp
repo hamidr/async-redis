@@ -7,9 +7,13 @@
 
 namespace async_redis
 {
-  template<typename InputOutputHandler, typename SocketType>
+  template<typename InputOutputHandler>
   class monitor
   {
+    using async_socket    = network::async_socket<InputOutputHandler>;
+    using tcp_socket      = network::tcp_socket<InputOutputHandler>;
+    using unix_socket     = network::unix_socket<InputOutputHandler>;
+
   public:
     enum EventState {
       Sub,
@@ -23,16 +27,22 @@ namespace async_redis
 
     monitor(InputOutputHandler &event_loop)
       : io_(event_loop)
+    {}
+
+    void connect(typename async_socket::connect_handler_t handler, const std::string& ip, int port)
     {
-      socket_ = std::make_unique<SocketType>(event_loop);
+      if (!socket_ || !socket_->is_valid())
+        socket_ = std::make_unique<tcp_socket>(io_);
+
+      socket_->template async_connect<tcp_socket>(0, handler, ip, port);
     }
 
-    template<typename ...Args>
-    inline void connect(Args... args) {
-      if (!socket_->is_valid())
-        socket_ = std::make_unique<SocketType>(io_);
+    void connect(typename async_socket::connect_handler_t handler, const std::string& path)
+    {
+      if (!socket_ || !socket_->is_valid())
+        socket_ = std::make_unique<unix_socket>(io_);
 
-      socket_->template async_connect<SocketType>(0, std::forward<Args>(args)...);
+      socket_->template async_connect<unix_socket>(0, handler, path);
     }
 
     inline bool is_connected() const
@@ -266,7 +276,7 @@ namespace async_redis
     std::unordered_map<std::string, watcher_cb_t> watchers_;
     std::unordered_map<std::string, watcher_cb_t> pwatchers_;
 
-    std::unique_ptr<SocketType> socket_;
+    std::unique_ptr<async_socket> socket_;
     InputOutputHandler &io_;
     enum { max_data_size = 1024 };
     char data_[max_data_size];

@@ -12,12 +12,12 @@ namespace async_redis
 {
   using std::string;
 
-  template<typename InputOutputHandler, typename SocketType>
+  template<typename InputOutputHandler>
   class redis_client
   {
     using connection_t = connection<InputOutputHandler>;
     using reply_cb_t   = typename connection_t::reply_cb_t;
-    using connect_cb_t = typename async_redis::network::async_socket<SocketType>::connect_handler_t;
+    using connect_cb_t = typename async_redis::network::async_socket<InputOutputHandler>::connect_handler_t;
 
   public:
     class connect_exception : std::exception {};
