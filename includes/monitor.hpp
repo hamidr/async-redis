@@ -21,7 +21,7 @@ namespace async_redis
       Disconnected
     };
 
-    using parser_t     = parser::redis_response::parser;
+    using parser_t     = parser::base_resp_parser::parser;
     using watcher_cb_t = std::function<void (const string&, parser_t, EventState)>;
 
     monitor(event_loop::event_loop_ev &event_loop)
@@ -240,7 +240,7 @@ namespace async_redis
       while (acc < len)
       {
         bool is_finished = false;
-        acc += parser::redis_response::append_chunk(parser_, data_ + acc, len - acc, is_finished);
+        acc += parser::base_resp_parser::append_chunk(parser_, data_ + acc, len - acc, is_finished);
 
         if (!is_finished)
           break;

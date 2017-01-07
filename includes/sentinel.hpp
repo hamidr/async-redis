@@ -1,7 +1,6 @@
 #pragma once
 
 #include <parser/base_resp_parser.h>
-#include <parser/redis_response.h>
 #include <monitor.hpp>
 #include <queue>
 #include <functional>
@@ -16,10 +15,8 @@ namespace async_redis {
     using socket_t     = ::async_redis::network::tcp_socket;
     using connect_cb_t = socket_t::connect_handler_t;
 
-    using redis_resp_t = ::async_redis::parser::redis_response;
-
   public:
-    using parser_t     = redis_resp_t::parser;
+    using parser_t     = parser::base_resp_parser::parser;
 
     enum SentinelState {
       Disconnected,

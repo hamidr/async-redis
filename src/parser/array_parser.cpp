@@ -1,5 +1,9 @@
 #include "../../includes/parser/array_parser.h"
 
+
+#include "../../includes/parser/number_parser.h"
+#include "../../includes/parser/bulk_string_parser.h"
+
 namespace async_redis {
 namespace parser {
 
@@ -116,5 +120,20 @@ string array_parser::to_string() const
 
   return s + "]";
 }
+
+void array_parser::map(const base_resp_parser::caller_t& fn)
+{
+  for(auto &c : tree_)
+    fn(*c);
+};
+
+std::shared_ptr<base_resp_parser>& array_parser::nth(int index) {
+  return tree_[index];
+}
+
+int array_parser::size() const {
+  return tree_.size();
+}
+
 
 }}

@@ -5,7 +5,7 @@
 #include <memory>
 #include <tuple>
 
-#include <parser/redis_response.h>
+#include <parser/base_resp_parser.h>
 #include <network/tcp_socket.hpp>
 #include <network/unix_socket.hpp>
 
@@ -18,7 +18,7 @@ namespace async_redis
     using unix_socket     = network::unix_socket;
 
   public:
-    using parser_t        = parser::redis_response::parser;
+    using parser_t        = parser::base_resp_parser::parser;
     using reply_cb_t      = std::function<void (parser_t)>;
 
     connection(event_loop::event_loop_ev& event_loop)
@@ -49,19 +49,23 @@ namespace async_redis
 
     void disconnect() {
       socket_->close();
+      //TODO: check the policy! Should we free queue or retry again?
       decltype(req_queue_) free_me;
       free_me.swap(req_queue_);
     }
 
     bool pipelined_send(std::string&& pipelined_cmds, std::vector<reply_cb_t>&& callbacks)
     {
+      if (!is_connected())
+        return false;
+
       return
         socket_->async_write(pipelined_cmds, [this, cbs = std::move(callbacks)](ssize_t sent_chunk_len) {
           if (sent_chunk_len == 0)
             return disconnect();
 
           if (!req_queue_.size() && cbs.size())
-            socket_->async_read(data_, max_data_size, std::bind(&connection::reply_received, this, std::placeholders::_1));
+            do_read();
 
           for(auto &&cb : cbs)
             req_queue_.emplace(std::move(cb), nullptr);
@@ -70,6 +74,9 @@ namespace async_redis
 
     bool send(const std::string&& command, const reply_cb_t& reply_cb)
     {
+      if (!is_connected())
+        return false;
+
       bool read_it = !req_queue_.size();
       req_queue_.emplace(reply_cb, nullptr);
 
@@ -79,11 +86,16 @@ namespace async_redis
             return disconnect();
 
         if (read_it)
-          socket_->async_read(data_, max_data_size, std::bind(&connection::reply_received, this, std::placeholders::_1));
+          do_read();
       });
     }
 
-  protected:
+  private:
+    inline
+    void do_read() {
+      socket_->async_read(data_, max_data_size, std::bind(&connection::reply_received, this, std::placeholders::_1));
+    }
+
     void reply_received(ssize_t len)
     {
       if (len == 0)
@@ -98,7 +110,7 @@ namespace async_redis
         auto &parser = std::get<1>(request);
 
         bool is_finished = false;
-        acc += parser::redis_response::append_chunk(parser, data_ + acc, len - acc, is_finished);
+        acc += parser::base_resp_parser::append_chunk(parser, data_ + acc, len - acc, is_finished);
 
         if (!is_finished)
           break;
@@ -108,7 +120,7 @@ namespace async_redis
       }
 
       if (req_queue_.size())
-        socket_->async_read(data_, max_data_size, std::bind(&connection::reply_received, this, std::placeholders::_1));
+        do_read();
     }
 
   private:

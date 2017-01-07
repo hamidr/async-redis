@@ -1,17 +1,20 @@
-#include "../../includes/parser/redis_response.h"
+#include "../../includes/parser/base_resp_parser.h"
 
 #include "../../includes/parser/number_parser.h"
-#include "../../includes/parser/error_parser.h"
 #include "../../includes/parser/bulk_string_parser.h"
 #include "../../includes/parser/array_parser.h"
+#include "../../includes/parser/error_parser.h"
 #include "../../includes/parser/simple_string_parser.h"
+
+
+#include <iostream>
 
 namespace async_redis {
 namespace parser {
 
 
 int
-redis_response::append_chunk(parser& data, const char* chunk, ssize_t length, bool &is_finished)
+base_resp_parser::append_chunk(base_resp_parser::parser& data, const char* chunk, ssize_t length, bool &is_finished)
 {
   if (data)
     goto handle;
@@ -46,6 +49,36 @@ redis_response::append_chunk(parser& data, const char* chunk, ssize_t length, bo
 
  handle:
   return data->parse_append(chunk, length, is_finished);
+}
+
+void
+base_resp_parser::print()
+{
+  string type;
+  switch(this->type()) {
+  case RespType::BulkStr:
+    type = "bulkstr";
+    break;
+  case RespType::Arr:
+    type = "array";
+    break;
+  case RespType::Str:
+    type = "str";
+    break;
+  case RespType::Num:
+    type = "num";
+    break;
+  default:
+    type = "err";
+    break;
+  }
+  std::cout << "Type: " << type << " Value: " << to_string() << std::endl;
+}
+
+void
+base_resp_parser::map(const base_resp_parser::caller_t &fn)
+{
+  fn(*this);
 }
 
 }}

@@ -1,7 +1,5 @@
 #include "../../includes/event_loop/event_loop_ev.h"
 
-#include <iostream>
-
 namespace async_redis {
 namespace event_loop {
 
