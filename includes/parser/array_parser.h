@@ -3,8 +3,7 @@
 #include <vector>
 #include <memory>
 
-#include "number_parser.h"
-#include "bulk_string_parser.h"
+#include "base_resp_parser.h"
 
 namespace async_redis {
   namespace parser
@@ -15,18 +14,11 @@ namespace async_redis {
       RespType type() const override;
       int parse_append(const char* chunk, ssize_t length, bool& is_finished) override;
       string to_string() const override;
-      void map(const caller_t& fn) override {
-        for(auto &c : tree_)
-          fn(*c);
-      };
 
-      std::shared_ptr<base_resp_parser>& nth(int index) {
-        return tree_[index];
-      }
+      void map(const caller_t& fn) override;
 
-      int size() const {
-        return tree_.size();
-      }
+      std::shared_ptr<base_resp_parser>& nth(int index);
+      int size() const;
 
     private:
       enum State {

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include "base_resp_parser.h"
 
 namespace async_redis {

@@ -10,26 +10,25 @@
 namespace async_redis {
 namespace tcp_server {
 
-  template<typename InputOutputHandler>
   class tcp_server
   {
   public:
-    using tcp_socket   = async_redis::network::tcp_socket<InputOutputHandler>;
+    using tcp_socket   = async_redis::network::tcp_socket;
+    using async_socket   = async_redis::network::async_socket;
 
-    tcp_server(InputOutputHandler &event_loop)
-      : loop_(event_loop) {
-      listener_ = std::make_shared<tcp_socket>(event_loop);
+    tcp_server(event_loop::event_loop_ev &event_loop)
+      : loop_(event_loop), listener_(event_loop) {
     }
 
     void listen(int port) {
-      if (!listener_->bind("127.0.0.1", port) || !listener_->listen())
+      if (!listener_.bind("127.0.0.1", port) || !listener_.listen())
         throw;
 
       auto receiver = std::bind(&tcp_server::accept, this, std::placeholders::_1);
-      listener_->template async_accept<tcp_socket>(receiver);
+      listener_.async_accept(receiver);
     }
 
-    void accept(std::shared_ptr<tcp_socket> socket) {
+    void accept(std::shared_ptr<async_socket> socket) {
       auto receiver = std::bind(&tcp_server::chunk_received, this, std::placeholders::_1, socket);
       socket->async_read(buffer_, max_buffer_length, receiver);
 
@@ -37,7 +36,7 @@ namespace tcp_server {
     }
 
   private:
-    void chunk_received(int len, std::shared_ptr<tcp_socket>& socket)
+    void chunk_received(int len, std::shared_ptr<async_socket>& socket)
     {
       std::string command;
 
@@ -78,10 +77,10 @@ namespace tcp_server {
     }
 
   private:
-    using socket_t = std::shared_ptr<tcp_socket>;
+    using socket_t = std::shared_ptr<async_socket>;
 
-    socket_t listener_;
-    InputOutputHandler& loop_;
+    tcp_socket listener_;
+    event_loop::event_loop_ev& loop_;
     std::unordered_map<socket_t, void*> conns_;
     enum { max_buffer_length = 1024 };
     char buffer_[max_buffer_length];

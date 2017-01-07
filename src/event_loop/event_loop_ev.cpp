@@ -1,7 +1,5 @@
 #include "../../includes/event_loop/event_loop_ev.h"
 
-#include <iostream>
-
 namespace async_redis {
 namespace event_loop {
 
@@ -20,71 +18,20 @@ void event_loop_ev::run()
   ev_run (loop_, 0);
 }
 
-void event_loop_ev::async_write(socket_identifier_t& watcher, const action& cb)
+void event_loop_ev::async_write(socket_identifier_t& watcher, action&& cb)
 {
-  auto &handlers = watcher->write_handlers;
-  handlers.push(cb);
-
-  if (watcher->write_handlers.size() == 1) {
-    ev_io *w = &watcher->write_watcher;
-    ev_io_start(loop_, w);
-  }
+  watcher->start_writing_with(std::move(cb));
 }
 
-void event_loop_ev::async_read(socket_identifier_t& watcher, const action& cb)
+void event_loop_ev::async_read(socket_identifier_t& watcher, action&& cb)
 {
-  auto &handlers = watcher->read_handlers;
-  handlers.push(cb);
-
-  if (watcher->read_handlers.size() == 1) {
-    ev_io *w = &watcher->read_watcher;
-    ev_io_start(loop_, w);
-  }
+  watcher->start_reading_with(std::move(cb));
 }
 
-void event_loop_ev::async_timeout(double time, const action& cb )
+void event_loop_ev::async_timeout(double time, action&& cb )
 {
   timer_watcher *w = new timer_watcher(time, cb);
   ev_timer_start (loop_, &w->timer);
-}
-
-void event_loop_ev::read_handler(EV_P_ ev_io* w, int revents)
-{
-  if (revents & EV_ERROR)
-    return;
-
-  socket_queue* sq = reinterpret_cast<socket_queue*>(w->data);
-  auto &handlers = sq->read_handlers;
-
-  if (handlers.size())
-  {
-    auto &action = handlers.front();
-    action();
-    handlers.pop();
-  }
-
-  if (!handlers.size())
-    ev_io_stop(loop, &sq->read_watcher);
-}
-
-void event_loop_ev::write_handler(EV_P_ ev_io* w, int revents)
-{
-  if (revents & EV_ERROR)
-    return;
-
-  socket_queue* sq = reinterpret_cast<socket_queue*>(w->data);
-
-  auto &handlers = sq->write_handlers;
-
-  if (handlers.size())
-  {
-    auto &action = handlers.front();
-    action();
-    handlers.pop();
-  }
-
-  if (!handlers.size())
-    ev_io_stop(loop, &sq->write_watcher);
 }
 
 void event_loop_ev::timer_handler(EV_P_ ev_timer* w, int revents)
@@ -94,20 +41,10 @@ void event_loop_ev::timer_handler(EV_P_ ev_timer* w, int revents)
   delete watcher;
 }
 
-void event_loop_ev::stop(ev_io& io)
-{
-  ev_clear_pending(loop_, &io);
-  ev_io_stop(loop_, &io);
-}
-
-void event_loop_ev::start(ev_io& io)
-{
-  ev_io_start(loop_, &io);
-}
 
 event_loop_ev::socket_identifier_t event_loop_ev::watch(int fd)
 {
-  return std::make_shared<event_loop_ev::socket_queue>(*this, fd);
+  return std::make_shared<socket_watcher>(loop_, fd);
 }
 
 void event_loop_ev::unwatch(socket_identifier_t& id)
