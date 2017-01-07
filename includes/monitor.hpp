@@ -2,6 +2,7 @@
 
 #include <parser/array_parser.h>
 
+#include <unordered_map>
 #include <list>
 #include <cassert>
 

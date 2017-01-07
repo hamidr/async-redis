@@ -52,19 +52,19 @@ bool async_socket::close()
   return res;
 }
 
-bool async_socket::async_write(const string& data, const ready_cb_t& cb)
+bool async_socket::async_write(const string& data, ready_cb_t fn)
 {
   if (!is_connected() || !data.size())
     return false;
 
-  io_.async_write(id_, [this, data, cb]() -> void {
+  io_.async_write(id_, [this, data, cb{std::move(fn)}]() -> void {
       auto sent_chunk = send(data);
 
       if(sent_chunk == 0)
         close();
 
       if (sent_chunk < data.size() && sent_chunk != -1) {
-        async_write(data.substr(sent_chunk, data.size()), cb);
+        async_write(data.substr(sent_chunk, data.size()), std::move(cb));
         return;
       }
 
@@ -74,12 +74,12 @@ bool async_socket::async_write(const string& data, const ready_cb_t& cb)
   return true;
 }
 
-bool async_socket::async_read(char *buffer, int max_len, const recv_cb_t& cb)
+bool async_socket::async_read(char *buffer, int max_len, recv_cb_t cb)
 {
   if (!is_connected())
     return false;
 
-  io_.async_read(id_, [&, buffer, max_len,  cb]() -> void {
+  io_.async_read(id_, [&, buffer, max_len,  cb{std::move(cb)}]() -> void {
       auto l = receive(buffer, max_len);
       if (l == 0)
         close();

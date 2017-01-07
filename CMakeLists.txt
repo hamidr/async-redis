@@ -30,6 +30,7 @@ link_directories("/usr/local/lib")
 
 
 add_library(event_loop
+  ${PROJECT_SOURCE_DIR}/event_loop/socket_watcher.cpp
   ${PROJECT_SOURCE_DIR}/event_loop/event_loop_ev.cpp)
 
 add_library(network

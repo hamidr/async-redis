@@ -1,5 +1,4 @@
-#include <memory>
-#include <iostream>
+#include <event_loop/event_loop_ev.h>
 
 #include <redis_client.hpp>
 #include <parser/base_resp_parser.h>
@@ -9,7 +8,6 @@
 #include <sentinel.hpp>
 #include "../examples/tcp_server.hpp"
 
-#include <event_loop/event_loop_ev.h>
 
 typedef async_redis::event_loop::event_loop_ev event_loop_ev;
 
