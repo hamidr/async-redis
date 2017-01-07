@@ -46,6 +46,12 @@ add_library(parser
   ${PROJECT_SOURCE_DIR}/parser/number_parser.cpp
   ${PROJECT_SOURCE_DIR}/parser/simple_string_parser.cpp)
 
+add_library(async_redis
+  ${PROJECT_SOURCE_DIR}/connection.cpp
+  ${PROJECT_SOURCE_DIR}/monitor.cpp
+  ${PROJECT_SOURCE_DIR}/sentinel.cpp
+  ${PROJECT_SOURCE_DIR}/redis_client.cpp)
+
 
 ## Compiler flags
 if(CMAKE_COMPILER_IS_GNUCXX)
@@ -54,6 +60,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 target_link_libraries(event_loop ev)
+target_link_libraries(async_redis event_loop parser network)
 
 install(TARGETS event_loop
   LIBRARY DESTINATION /usr/local/lib/
@@ -67,4 +74,4 @@ install(TARGETS parser
 install(DIRECTORY ${PROJECT_INCLUDE_DIR}/ DESTINATION /usr/local/include)
 
 add_executable (a1.out ${CMAKE_SOURCE_DIR}/test/main.cpp)
-target_link_libraries(a1.out parser event_loop network)
+target_link_libraries(a1.out async_redis)
