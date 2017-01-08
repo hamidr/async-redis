@@ -23,20 +23,11 @@ set(PROJECT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/includes)
 
 include_directories(${PROJECT_INCLUDE_DIR})
 include_directories("/usr/include/")
-include_directories("/usr/local/include")
+include_directories(${CMAKE_SOURCE_DIR}/libs/asio/asio/include/)
 
 link_directories("/usr/lib")
 link_directories("/usr/local/lib")
 
-
-add_library(event_loop
-  ${PROJECT_SOURCE_DIR}/event_loop/socket_watcher.cpp
-  ${PROJECT_SOURCE_DIR}/event_loop/event_loop_ev.cpp)
-
-add_library(network
-  ${PROJECT_SOURCE_DIR}/network/async_socket.cpp
-  ${PROJECT_SOURCE_DIR}/network/unix_socket.cpp
-  ${PROJECT_SOURCE_DIR}/network/tcp_socket.cpp)
 
 add_library(parser
   ${PROJECT_SOURCE_DIR}/parser/base_resp_parser.cpp
@@ -59,17 +50,18 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_EXE_LINKER_FLAGS "-s")  ## Strip binary
 endif()
 
-target_link_libraries(event_loop ev)
-target_link_libraries(async_redis event_loop parser network)
+target_link_libraries(async_redis parser pthread)
 
-install(TARGETS event_loop
+install(TARGETS async_redis
   LIBRARY DESTINATION /usr/local/lib/
-  ARCHIVE DESTINATION /usr/local/lib/)
+  ARCHIVE DESTINATION /usr/local/lib/
+  )
 
 install(TARGETS parser
   LIBRARY DESTINATION /usr/local/lib/
   ARCHIVE DESTINATION /usr/local/lib/
   )
+
 
 install(DIRECTORY ${PROJECT_INCLUDE_DIR}/ DESTINATION /usr/local/include)
 

@@ -2,43 +2,35 @@
 
 #include <parser/array_parser.h>
 #include <cassert>
-#include "../includes/network/tcp_socket.hpp"
-#include "../includes/network/unix_socket.hpp"
 
 namespace async_redis
 {
-using tcp_socket      = network::tcp_socket;
-using unix_socket     = network::unix_socket;
 
-monitor::monitor(event_loop::event_loop_ev &event_loop)
-  : io_(event_loop)
+monitor::monitor(asio::io_context &io)
+  : socket_(io)
 {}
 
-void monitor::connect(async_socket::connect_handler_t handler, const std::string& ip, int port)
+void monitor::connect(connect_handler_t handler, const std::string& ip, int port)
 {
-  if (!socket_ || !socket_->is_valid())
-    socket_ = std::make_unique<tcp_socket>(io_);
+  if (socket_.is_open())
+    socket_.close();
 
-  static_cast<tcp_socket*>(socket_.get())->async_connect(ip, port, handler);
-}
+  asio::ip::tcp::endpoint endpoint(asio::ip::address::from_string(ip), port);
 
-void monitor::connect(async_socket::connect_handler_t handler, const std::string& path)
-{
-  if (!socket_ || !socket_->is_valid())
-    socket_ = std::make_unique<unix_socket>(io_);
-
-  static_cast<unix_socket*>(socket_.get())->async_connect(path, handler);
+  socket_.async_connect(endpoint, [handler](const asio::error_code &ec) {
+      handler(!ec);
+    });
 }
 
 bool monitor::is_connected() const
-{ return socket_->is_connected(); }
+{ return socket_.is_open(); }
 
 bool monitor::is_watching() const
-{ return this->is_connected() && is_watching_; }
+{ return is_connected() && is_watching_; }
 
 void monitor::disconnect()
 {
-  socket_->close();
+  socket_.close();
 
   pwatchers_.clear();
   watchers_.clear();
@@ -103,23 +95,30 @@ bool monitor::send_and_receive(string&& data)
   if (!is_connected())
     return false;
 
-  socket_->async_write(data, [this](ssize_t sent_chunk_len) {
-    if (is_watching_)
-      return;
+  socket_.async_send(asio::buffer(data.data(), data.length()),
+    [this](const asio::error_code& ec, size_t sent_chunk_len)
+    {
+      if (is_watching_)
+        return;
 
-    this->socket_->async_read(
-      this->data_,
-      this->max_data_size,
-      std::bind(
-        &monitor::stream_received,
-        this,
-        std::placeholders::_1
-      )
-    );
+      do_read();
 
-    this->is_watching_ = true;
-  });
+      this->is_watching_ = true;
+    });
   return true;
+}
+
+void monitor::do_read()
+{
+  this->socket_.async_read_some(
+    asio::buffer(this->data_, this->max_data_size),
+    std::bind(
+      &monitor::stream_received,
+      this,
+      std::placeholders::_1,
+      std::placeholders::_2
+    )
+  );
 }
 
 void monitor::handle_message_event(parser_t& channel, parser_t& value)
@@ -216,9 +215,9 @@ void monitor::report_disconnect()
   disconnect();
 }
 
-void monitor::stream_received(ssize_t len)
+  void monitor::stream_received(const asio::error_code& ec, size_t len)
 {
-  if (len == 0)
+  if (ec)
     return report_disconnect();
 
   ssize_t acc = 0;
@@ -238,21 +237,12 @@ void monitor::stream_received(ssize_t len)
     }
   }
 
-  // if (!(watchers_.size() || pwatchers_.size()))
   if (!watchers_.size() && !pwatchers_.size()) {
     is_watching_ = false;
     return;
   }
 
-  this->socket_->async_read(
-    this->data_,
-    this->max_data_size,
-    std::bind(
-      &monitor::stream_received,
-      this,
-      std::placeholders::_1
-    )
-  );
+  do_read();
 }
 
 }

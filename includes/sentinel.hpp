@@ -1,17 +1,15 @@
 #pragma once
-#include <network/async_socket.hpp>
 #include <parser/base_resp_parser.h>
 
-#include <monitor.hpp>
 #include <functional>
+
+#include <monitor.hpp>
 #include <connection.hpp>
-// #include <memory>
 
 namespace async_redis {
   class sentinel
   {
-    using socket_t     = ::async_redis::network::async_socket;
-    using connect_cb_t = socket_t::connect_handler_t;
+    using connect_cb_t = connection::connect_handler_t;
 
   public:
     using parser_t     = parser::base_resp_parser::parser;
@@ -21,7 +19,7 @@ namespace async_redis {
       Watching
     };
 
-    sentinel(event_loop::event_loop_ev &event_loop);
+    sentinel(asio::io_context &io);
 
     bool is_connected() const;
     bool connect(const string& ip, int port, connect_cb_t&& connector);
@@ -54,7 +52,7 @@ namespace async_redis {
 
   private:
     int connected_ = 0;
-    std::unique_ptr<monitor> stream_;
-    std::unique_ptr<connection> conn_;
+    monitor stream_;
+    connection conn_;
   };
 }

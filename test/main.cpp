@@ -1,15 +1,9 @@
-#include <event_loop/event_loop_ev.h>
 
 #include <redis_client.hpp>
 #include <parser/base_resp_parser.h>
-#include <network/tcp_socket.hpp>
-#include <network/unix_socket.hpp>
 #include <monitor.hpp>
 #include <sentinel.hpp>
-#include "../examples/tcp_server.hpp"
-
-
-typedef async_redis::event_loop::event_loop_ev event_loop_ev;
+#include <iostream>
 
 struct monitor_test
 {
@@ -20,23 +14,23 @@ struct monitor_test
 
   using redis_client_t = async_redis::redis_client;
 
-  monitor_test(event_loop_ev &loop, int n = 100)
-    : my_monitor(std::make_unique<monitor_t>(loop)),
-      my_redis(std::make_unique<redis_client_t>(loop, 2)),
+  monitor_test(asio::io_context &loop, int n = 100)
+    : my_monitor(loop),
+      my_redis(loop, 2),
       n_ping(n)
   {
     start();
   }
 
   void start() {
-    my_redis->connect(std::bind(&monitor_test::check_redis_connected, this, std::placeholders::_1), "127.0.0.1", 6379);
+    my_redis.connect(std::bind(&monitor_test::check_redis_connected, this, std::placeholders::_1), "127.0.0.1", 6379);
   }
 
   void check_redis_connected(bool status)
   {
     if (status) {
       std::cout << "RedisClient connected! \n";
-      my_monitor->connect(std::bind(&monitor_test::check_monitor_connected, this, std::placeholders::_1), "127.0.0.1", 6379);
+      my_monitor.connect(std::bind(&monitor_test::check_monitor_connected, this, std::placeholders::_1), "127.0.0.1", 6379);
     } else {
       std::cout << "REDIS DIDNT CONNECT!" << std::endl;
     }
@@ -45,10 +39,10 @@ struct monitor_test
   void check_monitor_connected(bool status) {
     if (status) {
       std::cout << "Monitor connected!" << std::endl;
-      my_monitor->subscribe({"ping"}, std::bind(&monitor_test::watch_hello_msgs, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+      my_monitor.subscribe({"ping"}, std::bind(&monitor_test::watch_hello_msgs, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     } else {
       std::cout << "MONITOR DIDNT CONNECT!" << std::endl;
-      my_redis->disconnect();
+      my_redis.disconnect();
     }
   }
 
@@ -63,15 +57,15 @@ struct monitor_test
       break;
 
     case State::Stream:
-      std::cout << "watch EventStream" << std::endl;
+      // std::cout << "watch EventStream" << std::endl;
       if (play_with_event(event))
         return;
-      my_monitor->unsubscribe({"ping"}, std::bind(&monitor_test::watch_hello_msgs, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+      my_monitor.unsubscribe({"ping"}, std::bind(&monitor_test::watch_hello_msgs, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
       break;
     case State::Disconnected:
       std::cout << "Are we fucked" << std::endl;
-      my_redis->disconnect();
+      my_redis.disconnect();
       start();
       break;
 
@@ -83,18 +77,18 @@ struct monitor_test
 
   void send_ping(long n)
   {
-    std::cout << "Pinging" << std::endl;
-    my_redis->publish("ping", std::to_string(n),
+    // std::cout << "Pinging" << std::endl;
+    my_redis.publish("ping", std::to_string(n),
       [](parsed_t res)
       {
-        std::cout << "Pinged " << res->to_string() << " connections."  << std::endl;
+        // std::cout << "Pinged " << res->to_string() << " connections."  << std::endl;
       }
     );
   }
 
   bool play_with_event(const parsed_t& event)
   {
-    std::cout << "Ponged by " << event->to_string() << std::endl;
+    // std::cout << "Ponged by " << event->to_string() << std::endl;
     int n = 0;
 
     long x = std::stol(event->to_string());
@@ -106,8 +100,8 @@ struct monitor_test
   }
 
 private:
-  std::unique_ptr<monitor_t> my_monitor;
-  std::unique_ptr<redis_client_t> my_redis;
+  monitor_t my_monitor;
+  redis_client_t my_redis;
   const long n_ping;
 };
 
@@ -117,7 +111,7 @@ struct sentinel_test
   using sentinel_t = async_redis::sentinel;
   using parser_t   = sentinel_t::parser_t;
 
-  sentinel_test(event_loop_ev& ev)
+  sentinel_test(asio::io_context& ev)
     : io_(ev),
       my_sen1(std::make_unique<sentinel_t>(ev))
   {
@@ -158,12 +152,12 @@ struct sentinel_test
 
 private:
   std::unique_ptr<sentinel_t> my_sen1;
-  event_loop_ev &io_;
+  asio::io_context &io_;
 };
 
 int main(int argc, char** args)
 {
-  event_loop_ev loop;
+  asio::io_context loop;
 
   monitor_test monitor_mock(loop, 100000);
   // async_redis::tcp_server::tcp_server server(loop);

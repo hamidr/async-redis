@@ -12,14 +12,17 @@ namespace async_redis
 
   class redis_client
   {
+    redis_client(const redis_client&) = delete;
+    redis_client& operator = (const redis_client&) = delete;
+
     using reply_cb_t   = connection::reply_cb_t;
-    using connect_cb_t = network::async_socket::connect_handler_t;
+    using connect_cb_t = connection::connect_handler_t;
 
   public:
     class connect_exception : std::exception {};
     using parser_t = connection::parser_t;
 
-    redis_client(event_loop::event_loop_ev &eventIO, int n = 1);
+    redis_client(asio::io_context &io, uint n = 1);
     bool is_connected() const;
 
     template <typename ...Args>
