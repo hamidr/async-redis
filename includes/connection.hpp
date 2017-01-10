@@ -9,6 +9,8 @@
 #include <libevpp/event_loop/event_loop_ev.h>
 #include <libevpp/network/async_socket.hpp>
 
+using namespace libevpp;
+
 namespace async_redis
 {
   class connection

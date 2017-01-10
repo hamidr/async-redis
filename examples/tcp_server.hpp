@@ -8,13 +8,13 @@
 #include <unordered_map>
 
 namespace async_redis {
-namespace tcp_server {
+namespace examples {
 
   class tcp_server
   {
   public:
-    using tcp_socket   = async_redis::network::tcp_socket;
-    using async_socket   = async_redis::network::async_socket;
+    using tcp_socket   = libevpp::network::tcp_socket;
+    using async_socket  = libevpp::network::async_socket;
 
     tcp_server(event_loop::event_loop_ev &event_loop)
       : loop_(event_loop), listener_(event_loop) {

@@ -30,7 +30,7 @@ link_directories(/usr/local/lib)
 
 add_subdirectory(libs/libevpp/)
 
-include_directories(libs/libevpp/includes/)
+include_directories(libs/libevpp/includes)
 
 
 add_library(parser
@@ -54,7 +54,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_EXE_LINKER_FLAGS "-s")  ## Strip binary
 endif()
 
-target_link_libraries(async_redis network)
+target_link_libraries(async_redis network parser)
 
 add_executable (a2.out test/main.cpp)
 target_link_libraries(a2.out async_redis)

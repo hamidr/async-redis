@@ -1,6 +1,6 @@
 #pragma once
 
-#include <network/async_socket.hpp>
+#include <libevpp/network/async_socket.hpp>
 #include <parser/base_resp_parser.h>
 
 #include <unordered_map>
@@ -8,6 +8,7 @@
 #include <string>
 
 using std::string;
+using namespace libevpp;
 
 namespace async_redis
 {
