@@ -17,21 +17,20 @@ endif()
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
-set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
-set(PROJECT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/includes)
+
+set(PROJECT_SOURCE_DIR src)
+set(PROJECT_INCLUDE_DIR includes)
 
 include_directories(${PROJECT_INCLUDE_DIR})
-include_directories("/usr/include/")
-include_directories("/usr/local/include")
+include_directories(/usr/include/)
+include_directories(/usr/local/include)
 
-link_directories("/usr/lib")
-link_directories("/usr/local/lib")
+link_directories(/usr/lib)
+link_directories(/usr/local/lib)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/libs/libevpp/)
+add_subdirectory(libs/libevpp/)
 
-include_directories(${CMAKE_SOURCE_DIR}/libs/libevpp/includes/)
-link_directories(${CMAKE_SOURCE_DIR}/libs/libevpp/build/)
+include_directories(libs/libevpp/includes/)
 
 
 add_library(parser
@@ -57,5 +56,5 @@ endif()
 
 target_link_libraries(async_redis network)
 
-add_executable (a2.out ${CMAKE_SOURCE_DIR}/test/main.cpp)
+add_executable (a2.out test/main.cpp)
 target_link_libraries(a2.out async_redis)
