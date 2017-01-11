@@ -1,4 +1,4 @@
-#include "../includes/sentinel.hpp"
+#include "../includes/async_redis/sentinel.hpp"
 
 #include <istream>
 #include <sstream>

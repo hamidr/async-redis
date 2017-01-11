@@ -1,10 +1,10 @@
 #pragma once
 #include <libevpp/network/async_socket.hpp>
-#include <parser/base_resp_parser.h>
+#include <async_redis/parser/base_resp_parser.h>
 
-#include <monitor.hpp>
+#include <async_redis/monitor.hpp>
 #include <functional>
-#include <connection.hpp>
+#include <async_redis/connection.hpp>
 
 using namespace libevpp;
 

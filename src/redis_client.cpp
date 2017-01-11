@@ -1,10 +1,8 @@
-#include "../includes/redis_client.hpp"
+#include "../includes/async_redis/redis_client.hpp"
 
 #include <vector>
 #include <string>
 #include <memory>
-
-#include "connection.hpp"
 
 namespace async_redis
 {

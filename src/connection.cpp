@@ -1,11 +1,11 @@
-#include "../includes/connection.hpp"
+#include "../includes/async_redis/connection.hpp"
 
 #include <queue>
 #include <functional>
 #include <memory>
 #include <tuple>
 
-#include <parser/base_resp_parser.h>
+#include <async_redis/parser/base_resp_parser.h>
 #include <libevpp/network/tcp_socket.hpp>
 #include <libevpp/network/unix_socket.hpp>
 

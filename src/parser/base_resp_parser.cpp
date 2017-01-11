@@ -1,10 +1,10 @@
-#include "../../includes/parser/base_resp_parser.h"
+#include "../../includes/async_redis/parser/base_resp_parser.h"
 
-#include "../../includes/parser/number_parser.h"
-#include "../../includes/parser/bulk_string_parser.h"
-#include "../../includes/parser/array_parser.h"
-#include "../../includes/parser/error_parser.h"
-#include "../../includes/parser/simple_string_parser.h"
+#include "../../includes/async_redis/parser/number_parser.h"
+#include "../../includes/async_redis/parser/bulk_string_parser.h"
+#include "../../includes/async_redis/parser/array_parser.h"
+#include "../../includes/async_redis/parser/error_parser.h"
+#include "../../includes/async_redis/parser/simple_string_parser.h"
 
 
 #include <iostream>

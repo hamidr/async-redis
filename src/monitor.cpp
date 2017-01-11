@@ -1,6 +1,6 @@
-#include "../includes/monitor.hpp"
+#include "../includes/async_redis/monitor.hpp"
 
-#include <parser/array_parser.h>
+#include <async_redis/parser/array_parser.h>
 #include <cassert>
 #include <libevpp/network/tcp_socket.hpp>
 #include <libevpp/network/unix_socket.hpp>

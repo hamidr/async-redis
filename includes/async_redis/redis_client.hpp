@@ -4,7 +4,7 @@
 #include <string>
 #include <memory>
 
-#include "connection.hpp"
+#include <async_redis/connection.hpp>
 
 namespace async_redis
 {

@@ -1,11 +1,11 @@
 #include <libevpp/event_loop/event_loop_ev.h>
 
-#include <redis_client.hpp>
-#include <parser/base_resp_parser.h>
+#include <async_redis/redis_client.hpp>
+#include <async_redis/parser/base_resp_parser.h>
 #include <libevpp/network/tcp_socket.hpp>
 #include <libevpp/network/unix_socket.hpp>
-#include <monitor.hpp>
-#include <sentinel.hpp>
+#include <async_redis/monitor.hpp>
+#include <async_redis/sentinel.hpp>
 #include "../examples/tcp_server.hpp"
 
 
