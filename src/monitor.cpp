@@ -206,12 +206,13 @@ void monitor::report_disconnect()
   t2.swap(pwatchers_);
 
   string str;
+  parser_t p;
 
   for(auto &w : t1)
-    w.second(str, nullptr, EventState::Disconnected);
+    w.second(str, p, EventState::Disconnected);
 
   for(auto &w : t2)
-    w.second(str, nullptr, EventState::Disconnected);
+    w.second(str, p, EventState::Disconnected);
 
   disconnect();
 }

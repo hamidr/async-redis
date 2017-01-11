@@ -55,7 +55,7 @@ namespace async_redis {
 
   private:
     int connected_ = 0;
-    std::unique_ptr<monitor> stream_;
-    std::unique_ptr<connection> conn_;
+    monitor stream_;
+    connection conn_;
   };
 }

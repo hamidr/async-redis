@@ -6,13 +6,13 @@
 namespace async_redis
 {
 sentinel::sentinel(event_loop::event_loop_ev &event_loop)
-  : conn_(std::make_unique<connection>(event_loop)),
-    stream_(std::make_unique<monitor>(event_loop))
+  : conn_(event_loop),
+    stream_(event_loop)
 { }
 
 bool sentinel::is_connected() const
 {
-  return stream_->is_connected() && conn_->is_connected();
+  return stream_.is_connected() && conn_.is_connected();
 }
 
 bool sentinel::connect(const string& ip, int port, connect_cb_t&& connector)
@@ -25,8 +25,8 @@ bool sentinel::connect(const string& ip, int port, connect_cb_t&& connector)
 }
 
 void sentinel::disconnect() {
-  stream_->disconnect();
-  conn_->disconnect();
+  stream_.disconnect();
+  conn_.disconnect();
 }
 
 bool sentinel::failover(const string& clustername, connection::reply_cb_t&& reply)
@@ -53,7 +53,7 @@ bool sentinel::watch_master_change(cb_watch_master_change_t&& fn)
     [&]()-> bool {
       using State = monitor::EventState;
 
-      return stream_->subscribe({"+switch-master"},
+      return stream_.subscribe({"+switch-master"},
         [this, fn = std::move(fn)](const string& channel, parser_t event, State state) -> void
         {
           switch(state)
@@ -147,8 +147,8 @@ void sentinel::connect_all(const string& ip, int port, const connect_cb_t& conne
 {
   auto cb = std::bind(&sentinel::check_connected, this, connector, std::placeholders::_1);
 
-  conn_->connect(cb, ip, port);
-  stream_->connect(cb, ip, port);
+  conn_.connect(cb, ip, port);
+  stream_.connect(cb, ip, port);
 }
 
 void sentinel::check_connected(const connect_cb_t& connector, bool res)
@@ -171,7 +171,7 @@ bool sentinel::send(std::list<string>&& words, connection::reply_cb_t&& reply)
     cmd += " " + w;
   cmd += "\r\n";
 
-  if (!conn_->send(std::move(cmd), std::move(reply))) {
+  if (!conn_.send(std::move(cmd), std::move(reply))) {
     disconnect();
     return false;
   }

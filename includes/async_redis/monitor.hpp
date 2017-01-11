@@ -25,7 +25,7 @@ namespace async_redis
     };
 
     using parser_t     = parser::base_resp_parser::parser;
-    using watcher_cb_t = std::function<void (const string&, parser_t, EventState)>;
+    using watcher_cb_t = std::function<void (const string&, parser_t&, EventState)>;
 
     monitor(event_loop::event_loop_ev &event_loop);
 

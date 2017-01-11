@@ -19,7 +19,7 @@ namespace async_redis
 
   public:
     using parser_t        = parser::base_resp_parser::parser;
-    using reply_cb_t      = std::function<void (parser_t)>;
+    using reply_cb_t      = std::function<void (parser_t&)>;
 
     connection(event_loop::event_loop_ev& event_loop);
 
