@@ -38,6 +38,7 @@ namespace async_redis
     void decr(const string& field, reply_cb_t reply);
     void ping(reply_cb_t reply);
     void publish(const string& channel, const string& msg, reply_cb_t&& reply);
+    void sort(const string& hash_name, std::vector<string>&& fields, reply_cb_t&& reply);
 
     //TODO: wtf?! doesnt make sense with multiple connections!
     // void select(uint catalog, reply_cb_t&& reply) {

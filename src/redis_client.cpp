@@ -69,6 +69,17 @@ void redis_client::publish(const string& channel, const string& msg, reply_cb_t&
   send({"publish", channel, msg}, reply);
 }
 
+void 
+redis_client::sort(const string& hash_name, std::vector<string>&& fields, reply_cb_t&& reply)
+{
+  std::string req;
+  for (auto &field : fields)
+    req += "get " + field + " ";
+
+  send({"sort " + hash_name + " by nosort",  req}, reply);
+}
+
+
 void redis_client::commit_pipeline() {
   string buffer;
   std::swap(pipeline_buffer_, buffer);
