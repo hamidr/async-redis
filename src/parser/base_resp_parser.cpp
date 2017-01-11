@@ -51,6 +51,36 @@ base_resp_parser::append_chunk(base_resp_parser::parser& data, const char* chunk
   return data->parse_append(chunk, length, is_finished);
 }
 
+bool
+base_resp_parser::is_array() const
+{
+  this->type() == RespType::Arr;
+}
+
+bool
+base_resp_parser::is_number() const
+{
+  this->type() == RespType::Num;
+}
+
+bool
+base_resp_parser::is_error() const
+{
+  this->type() == RespType::Err;
+}
+
+bool
+base_resp_parser::is_string() const
+{
+  this->type() == RespType::BulkStr;
+}
+
+bool
+base_resp_parser::is_enum() const
+{
+  this->type() == RespType::Str;
+}
+
 void
 base_resp_parser::print()
 {
