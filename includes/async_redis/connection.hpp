@@ -5,18 +5,21 @@
 #include <memory>
 #include <tuple>
 
-#include <parser/base_resp_parser.h>
-#include <network/async_socket.hpp>
+#include <async_redis/parser/base_resp_parser.h>
+#include <libevpp/event_loop/event_loop_ev.h>
+#include <libevpp/network/async_socket.hpp>
+
+using namespace libevpp;
 
 namespace async_redis
 {
   class connection
   {
-    using async_socket    = network::async_socket;
+    using async_socket    = libevpp::network::async_socket;
 
   public:
     using parser_t        = parser::base_resp_parser::parser;
-    using reply_cb_t      = std::function<void (parser_t)>;
+    using reply_cb_t      = std::function<void (parser_t&)>;
 
     connection(event_loop::event_loop_ev& event_loop);
 

@@ -1,16 +1,17 @@
 #pragma once
-#include <network/async_socket.hpp>
-#include <parser/base_resp_parser.h>
+#include <libevpp/network/async_socket.hpp>
+#include <async_redis/parser/base_resp_parser.h>
 
-#include <monitor.hpp>
+#include <async_redis/monitor.hpp>
 #include <functional>
-#include <connection.hpp>
-// #include <memory>
+#include <async_redis/connection.hpp>
+
+using namespace libevpp;
 
 namespace async_redis {
   class sentinel
   {
-    using socket_t     = ::async_redis::network::async_socket;
+    using socket_t     = libevpp::network::async_socket;
     using connect_cb_t = socket_t::connect_handler_t;
 
   public:
@@ -54,7 +55,7 @@ namespace async_redis {
 
   private:
     int connected_ = 0;
-    std::unique_ptr<monitor> stream_;
-    std::unique_ptr<connection> conn_;
+    monitor stream_;
+    connection conn_;
   };
 }

@@ -1,10 +1,10 @@
-#include "../../includes/parser/base_resp_parser.h"
+#include "../../includes/async_redis/parser/base_resp_parser.h"
 
-#include "../../includes/parser/number_parser.h"
-#include "../../includes/parser/bulk_string_parser.h"
-#include "../../includes/parser/array_parser.h"
-#include "../../includes/parser/error_parser.h"
-#include "../../includes/parser/simple_string_parser.h"
+#include "../../includes/async_redis/parser/number_parser.h"
+#include "../../includes/async_redis/parser/bulk_string_parser.h"
+#include "../../includes/async_redis/parser/array_parser.h"
+#include "../../includes/async_redis/parser/error_parser.h"
+#include "../../includes/async_redis/parser/simple_string_parser.h"
 
 
 #include <iostream>
@@ -49,6 +49,36 @@ base_resp_parser::append_chunk(base_resp_parser::parser& data, const char* chunk
 
  handle:
   return data->parse_append(chunk, length, is_finished);
+}
+
+bool
+base_resp_parser::is_array() const
+{
+  this->type() == RespType::Arr;
+}
+
+bool
+base_resp_parser::is_number() const
+{
+  this->type() == RespType::Num;
+}
+
+bool
+base_resp_parser::is_error() const
+{
+  this->type() == RespType::Err;
+}
+
+bool
+base_resp_parser::is_string() const
+{
+  this->type() == RespType::BulkStr;
+}
+
+bool
+base_resp_parser::is_enum() const
+{
+  this->type() == RespType::Str;
 }
 
 void

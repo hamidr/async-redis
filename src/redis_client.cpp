@@ -1,10 +1,8 @@
-#include "../includes/redis_client.hpp"
+#include "../includes/async_redis/redis_client.hpp"
 
 #include <vector>
 #include <string>
 #include <memory>
-
-#include "connection.hpp"
 
 namespace async_redis
 {
@@ -70,6 +68,17 @@ void redis_client::ping(reply_cb_t reply) {
 void redis_client::publish(const string& channel, const string& msg, reply_cb_t&& reply) {
   send({"publish", channel, msg}, reply);
 }
+
+void 
+redis_client::sort(const string& hash_name, std::vector<string>&& fields, reply_cb_t&& reply)
+{
+  std::string req;
+  for (auto &field : fields)
+    req += "get " + field + " ";
+
+  send({"sort " + hash_name + " by nosort",  req}, reply);
+}
+
 
 void redis_client::commit_pipeline() {
   string buffer;

@@ -1,8 +1,7 @@
-#include "../../includes/parser/array_parser.h"
+#include "../../includes/async_redis/parser/array_parser.h"
 
-
-#include "../../includes/parser/number_parser.h"
-#include "../../includes/parser/bulk_string_parser.h"
+#include "../../includes/async_redis/parser/number_parser.h"
+#include "../../includes/async_redis/parser/bulk_string_parser.h"
 
 namespace async_redis {
 namespace parser {

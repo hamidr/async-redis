@@ -1,4 +1,4 @@
-#include "../../includes/parser/simple_string_parser.h"
+#include "../../includes/async_redis/parser/simple_string_parser.h"
 
 namespace async_redis {
 namespace parser {

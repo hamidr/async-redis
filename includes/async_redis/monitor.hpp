@@ -1,13 +1,14 @@
 #pragma once
 
-#include <network/async_socket.hpp>
-#include <parser/base_resp_parser.h>
+#include <libevpp/network/async_socket.hpp>
+#include <async_redis/parser/base_resp_parser.h>
 
 #include <unordered_map>
 #include <list>
 #include <string>
 
 using std::string;
+using namespace libevpp;
 
 namespace async_redis
 {
@@ -24,7 +25,7 @@ namespace async_redis
     };
 
     using parser_t     = parser::base_resp_parser::parser;
-    using watcher_cb_t = std::function<void (const string&, parser_t, EventState)>;
+    using watcher_cb_t = std::function<void (const string&, parser_t&, EventState)>;
 
     monitor(event_loop::event_loop_ev &event_loop);
 

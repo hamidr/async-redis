@@ -17,26 +17,21 @@ endif()
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
-set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
-set(PROJECT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/includes)
+
+set(PROJECT_SOURCE_DIR src)
+set(PROJECT_INCLUDE_DIR includes)
 
 include_directories(${PROJECT_INCLUDE_DIR})
-include_directories("/usr/include/")
-include_directories("/usr/local/include")
+include_directories(/usr/include/)
+include_directories(/usr/local/include)
 
-link_directories("/usr/lib")
-link_directories("/usr/local/lib")
+link_directories(/usr/lib)
+link_directories(/usr/local/lib)
 
+add_subdirectory(libs/libevpp/)
 
-add_library(event_loop
-  ${PROJECT_SOURCE_DIR}/event_loop/socket_watcher.cpp
-  ${PROJECT_SOURCE_DIR}/event_loop/event_loop_ev.cpp)
+include_directories(libs/libevpp/includes)
 
-add_library(network
-  ${PROJECT_SOURCE_DIR}/network/async_socket.cpp
-  ${PROJECT_SOURCE_DIR}/network/unix_socket.cpp
-  ${PROJECT_SOURCE_DIR}/network/tcp_socket.cpp)
 
 add_library(parser
   ${PROJECT_SOURCE_DIR}/parser/base_resp_parser.cpp
@@ -59,19 +54,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_EXE_LINKER_FLAGS "-s")  ## Strip binary
 endif()
 
-target_link_libraries(event_loop ev)
-target_link_libraries(async_redis event_loop parser network)
+target_link_libraries(async_redis network parser)
 
-install(TARGETS event_loop
-  LIBRARY DESTINATION /usr/local/lib/
-  ARCHIVE DESTINATION /usr/local/lib/)
-
-install(TARGETS parser
-  LIBRARY DESTINATION /usr/local/lib/
-  ARCHIVE DESTINATION /usr/local/lib/
-  )
-
-install(DIRECTORY ${PROJECT_INCLUDE_DIR}/ DESTINATION /usr/local/include)
-
-add_executable (a1.out ${CMAKE_SOURCE_DIR}/test/main.cpp)
-target_link_libraries(a1.out async_redis)
+add_executable (a2.out test/main.cpp)
+target_link_libraries(a2.out async_redis)

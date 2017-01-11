@@ -1,9 +1,9 @@
-#include "../includes/monitor.hpp"
+#include "../includes/async_redis/monitor.hpp"
 
-#include <parser/array_parser.h>
+#include <async_redis/parser/array_parser.h>
 #include <cassert>
-#include "../includes/network/tcp_socket.hpp"
-#include "../includes/network/unix_socket.hpp"
+#include <libevpp/network/tcp_socket.hpp>
+#include <libevpp/network/unix_socket.hpp>
 
 namespace async_redis
 {
@@ -206,12 +206,13 @@ void monitor::report_disconnect()
   t2.swap(pwatchers_);
 
   string str;
+  parser_t p;
 
   for(auto &w : t1)
-    w.second(str, nullptr, EventState::Disconnected);
+    w.second(str, p, EventState::Disconnected);
 
   for(auto &w : t2)
-    w.second(str, nullptr, EventState::Disconnected);
+    w.second(str, p, EventState::Disconnected);
 
   disconnect();
 }
