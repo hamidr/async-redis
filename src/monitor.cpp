@@ -239,7 +239,6 @@ void monitor::stream_received(ssize_t len)
     }
   }
 
-  // if (!(watchers_.size() || pwatchers_.size()))
   if (!watchers_.size() && !pwatchers_.size()) {
     is_watching_ = false;
     return;

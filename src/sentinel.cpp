@@ -31,46 +31,43 @@ void sentinel::disconnect() {
 
 bool sentinel::failover(const string& clustername, connection::reply_cb_t&& reply)
 {
-  return if_connected_do(
-    [&]() -> bool {
-      return send({std::string("sentinel failover ") + clustername}, std::move(reply));
-    }
-  );
+  if (!is_connected())
+    return false;
+
+  return send({std::string("sentinel failover ") + clustername}, std::move(reply));
 }
 
 bool sentinel::ping(connection::reply_cb_t&& reply)
 {
-  return if_connected_do(
-    [&]() -> bool {
-      return send({"ping"}, std::move(reply));
-    }
-  );
+  if (!is_connected())
+    return false;
+
+  return send({"ping"}, std::move(reply));
 }
 
 bool sentinel::watch_master_change(cb_watch_master_change_t&& fn)
 {
-  return if_connected_do(
-    [&]()-> bool {
-      using State = monitor::EventState;
+  if (!is_connected())
+    return false;
 
-      return stream_.subscribe({"+switch-master"},
-        [this, fn = std::move(fn)](const string& channel, parser_t event, State state) -> void
-        {
-          switch(state)
-          {
-          case State::Stream:
-            return fn(parse_watch_master_change(event), SentinelState::Watching);
+  using State = monitor::EventState;
 
-          case State::Disconnected:
-            this->disconnect();
-            return fn({}, SentinelState::Disconnected);
-            break;
+  return stream_.subscribe({"+switch-master"},
+    [this, fn{std::move(fn)}](const string& channel, parser_t event, State state) -> void
+    {
+      switch(state)
+      {
+      case State::Stream:
+        return fn(parse_watch_master_change(event), SentinelState::Watching);
 
-          default:
-            break;
-          }
-        }
-      );
+      case State::Disconnected:
+        this->disconnect();
+        return fn({}, SentinelState::Disconnected);
+        break;
+
+      default:
+        break;
+      }
     }
   );
 }
@@ -78,17 +75,16 @@ bool sentinel::watch_master_change(cb_watch_master_change_t&& fn)
 
 bool sentinel::master_addr_by_name(const string& cluster_name, cb_addr_by_name_t&& cb)
 {
-  return if_connected_do(
-    [&]() -> bool {
-      return send_master_addr_by_name(cluster_name, std::move(cb));
-    }
-  );
+  if (!is_connected())
+    return false;
+
+  return send_master_addr_by_name(cluster_name, std::move(cb));
 }
 
 bool sentinel::send_master_addr_by_name(const string& cluster_name, cb_addr_by_name_t&& cb)
 {
   return this->send({string("SENTINEL get-master-addr-by-name ") + cluster_name + "\r\n"},
-    [cb = std::move(cb)](parser_t parsed_value)
+    [cb{std::move(cb)}](parser_t parsed_value)
     {
       using ::async_redis::parser::RespType;
 
@@ -122,7 +118,6 @@ bool sentinel::send_master_addr_by_name(const string& cluster_name, cb_addr_by_n
   );
 }
 
-// static
 std::vector<std::string> sentinel::parse_watch_master_change(const parser_t& event)
 {
   std::vector<string> words;
@@ -133,14 +128,6 @@ std::vector<std::string> sentinel::parse_watch_master_change(const parser_t& eve
     words.push_back(s);
 
   return words;
-}
-
-bool sentinel::if_connected_do(std::function<bool ()>&& fn)
-{
-  if (!is_connected())
-    return false;
-
-  return fn();
 }
 
 void sentinel::connect_all(const string& ip, int port, const connect_cb_t& connector)

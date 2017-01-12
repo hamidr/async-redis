@@ -48,7 +48,6 @@ namespace async_redis {
     static std::vector<std::string> parse_watch_master_change(const parser_t& event);
 
   private:
-    bool if_connected_do(std::function<bool ()>&& fn);
     void connect_all(const string& ip, int port, const connect_cb_t& connector);
     void check_connected(const connect_cb_t& connector, bool res);
     bool send(std::list<string>&& words, connection::reply_cb_t&& reply);
