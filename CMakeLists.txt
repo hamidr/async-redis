@@ -25,13 +25,7 @@ include_directories(${PROJECT_INCLUDE_DIR})
 include_directories(/usr/include/)
 include_directories(/usr/local/include)
 
-link_directories(/usr/lib)
-link_directories(/usr/local/lib)
-
-add_subdirectory(libs/libevpp/)
-
-include_directories(libs/libevpp/includes)
-
+include_directories(libs/asio/asio/include/)
 
 add_library(parser
   ${PROJECT_SOURCE_DIR}/parser/base_resp_parser.cpp
@@ -54,7 +48,20 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_EXE_LINKER_FLAGS "-s")  ## Strip binary
 endif()
 
-target_link_libraries(async_redis network parser)
+target_link_libraries(async_redis parser pthread)
+
+install(TARGETS async_redis
+  LIBRARY DESTINATION /usr/local/lib/
+  ARCHIVE DESTINATION /usr/local/lib/
+  )
+
+install(TARGETS parser
+  LIBRARY DESTINATION /usr/local/lib/
+  ARCHIVE DESTINATION /usr/local/lib/
+  )
+
+
+install(DIRECTORY ${PROJECT_INCLUDE_DIR}/ DESTINATION /usr/local/include)
 
 add_executable (a2.out test/main.cpp)
 target_link_libraries(a2.out async_redis)

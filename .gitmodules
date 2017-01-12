@@ -1,3 +1,3 @@
-[submodule "libs/libevpp"]
-	path = libs/libevpp
-	url = https://github.com/hamidr/libevpp
+[submodule "libs/asio"]
+	path = libs/asio
+	url = https://github.com/chriskohlhoff/asio

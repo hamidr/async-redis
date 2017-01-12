@@ -1,18 +1,16 @@
 #include "../includes/async_redis/redis_client.hpp"
 
-#include <vector>
-#include <string>
 #include <memory>
 
 namespace async_redis
 {
 
-redis_client::redis_client(event_loop::event_loop_ev &eventIO, int n)
+redis_client::redis_client(asio::io_context &io, uint n)
 {
   conn_pool_.reserve(n);
 
   for (int i = 0; i < conn_pool_.capacity(); ++i)
-    conn_pool_.push_back(std::make_unique<connection>(eventIO));
+    conn_pool_.push_back(std::make_unique<connection>(io));
 }
 
 bool redis_client::is_connected() const
@@ -127,19 +125,18 @@ void redis_client::send(const std::vector<string>&& elems, const reply_cb_t& rep
   pipelined_cbs_.push_back(std::move(reply));
 }
 
+
 connection& redis_client::get_connection()
 {
-  auto &con = conn_pool_[con_rr_ctr_++];
   if (con_rr_ctr_ == conn_pool_.size())
     con_rr_ctr_ = 0;
 
-  return *con.get();
+  return *conn_pool_[con_rr_ctr_++];
 }
 
 void redis_client::check_conn_connected(const connect_cb_t& handler, bool res)
 {
-  ++connected_called_;
-  if (connected_called_ != conn_pool_.size())
+  if (++connected_called_ != conn_pool_.size())
     return;
 
   bool val = true;
