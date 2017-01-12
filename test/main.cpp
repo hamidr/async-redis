@@ -1,5 +1,6 @@
 #include <libevpp/event_loop/event_loop_ev.h>
 
+#include <iostream>
 #include <async_redis/redis_client.hpp>
 #include <async_redis/parser/base_resp_parser.h>
 #include <libevpp/network/tcp_socket.hpp>
