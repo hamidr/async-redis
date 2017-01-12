@@ -5,9 +5,9 @@
 
 namespace async_redis
 {
-sentinel::sentinel(event_loop::event_loop_ev &event_loop)
-  : conn_(event_loop),
-    stream_(event_loop)
+sentinel::sentinel(asio::io_context &io)
+  : conn_(io),
+    stream_(io)
 { }
 
 bool sentinel::is_connected() const
@@ -24,7 +24,8 @@ bool sentinel::connect(const string& ip, int port, connect_cb_t&& connector)
   return true;
 }
 
-void sentinel::disconnect() {
+void sentinel::disconnect()
+{
   stream_.disconnect();
   conn_.disconnect();
 }
