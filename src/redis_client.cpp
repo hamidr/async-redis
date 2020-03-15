@@ -70,18 +70,15 @@ redis_client::sort(const string& hash_name, std::vector<string>&& fields, reply_
   send({"sort " + hash_name + " by nosort",  req}, reply);
 }
 
-void redis_client::send(std::vector<string>&& elems, const reply_cb_t& reply)
+bool redis_client::send(std::vector<string>&& elems, const reply_cb_t& reply) noexcept
 {
-  if (!is_connected())
-    throw connect_exception();
-
   string cmd;
   for (auto &s : elems)
     cmd += s + " ";
 
   cmd += "\r\n";
 
-  conn_.send(std::move(cmd), reply);
+  return conn_.send(std::move(cmd), reply);
 }
 
 }

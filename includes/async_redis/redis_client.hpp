@@ -19,7 +19,6 @@ namespace async_redis
     using connect_cb_t = connection::connect_handler_t;
 
   public:
-    class connect_exception : std::exception {};
     using parser_t = connection::parser_t;
 
     redis_client(asio::io_context &io) noexcept;
@@ -44,7 +43,7 @@ namespace async_redis
     void select(uint catalog, reply_cb_t&& reply);
 
   private:
-    void send(std::vector<string>&& elems, const reply_cb_t& reply);
+    bool send(std::vector<string>&& elems, const reply_cb_t& reply) noexcept;
 
   private:
     connection conn_;
