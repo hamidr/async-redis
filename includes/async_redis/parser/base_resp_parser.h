@@ -30,11 +30,11 @@ namespace async_redis {
       virtual int parse_append(const char*, ssize_t, bool&) = 0;
       virtual std::string to_string() const = 0;
       virtual void map(const caller_t &fn);
-      bool is_array() const;
-      bool is_number() const;
-      bool is_string() const;
-      bool is_enum() const;
-      bool is_error() const;
+      bool is_array() const noexcept;
+      bool is_number() const noexcept;
+      bool is_string() const noexcept;
+      bool is_enum() const noexcept;
+      bool is_error() const noexcept;
 
       void print();
     };

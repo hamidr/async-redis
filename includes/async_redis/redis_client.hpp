@@ -22,13 +22,12 @@ namespace async_redis
     class connect_exception : std::exception {};
     using parser_t = connection::parser_t;
 
-    redis_client(asio::io_context &io, uint n = 1);
-    bool is_connected() const;
+    redis_client(asio::io_context &io) noexcept;
+    bool is_connected() const noexcept;
 
     template <typename ...Args>
     void connect(const connect_cb_t& handler, Args... args) {
-      for(auto &conn : conn_pool_)
-        conn->connect(std::bind(&redis_client::check_conn_connected, this, handler, std::placeholders::_1), args...);
+        conn_.connect(handler, args...);
     }
 
     void disconnect();
@@ -42,27 +41,13 @@ namespace async_redis
     void ping(reply_cb_t reply);
     void publish(const string& channel, const string& msg, reply_cb_t&& reply);
     void sort(const string& hash_name, std::vector<string>&& fields, reply_cb_t&& reply);
-
-    //TODO: wtf?! doesnt make sense with multiple connections!
-    // void select(uint catalog, reply_cb_t&& reply) {
-    //   send({"select", std::to_string(catalog)}, reply);
-    // }
-
-    void commit_pipeline();
-    redis_client& pipeline_on();
-    redis_client& pipeline_off();
+    void select(uint catalog, reply_cb_t&& reply);
 
   private:
-    void send(const std::vector<string>&& elems, const reply_cb_t& reply);
-    connection& get_connection();
-    void check_conn_connected(const connect_cb_t& handler, bool res);
+    void send(std::vector<string>&& elems, const reply_cb_t& reply);
 
   private:
-    std::string pipeline_buffer_;
-    bool pipelined_state_ = false;
-    std::vector<reply_cb_t> pipelined_cbs_;
-    std::vector<std::unique_ptr<connection>> conn_pool_;
-    int con_rr_ctr_ = 0;
+    connection conn_;
     int connected_called_ = 0;
     bool is_connected_ = false;
   };

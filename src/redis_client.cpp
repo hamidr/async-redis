@@ -5,21 +5,15 @@
 namespace async_redis
 {
 
-redis_client::redis_client(asio::io_context &io, uint n)
-{
-  conn_pool_.reserve(n);
+redis_client::redis_client(asio::io_context &io) noexcept
+  : conn_(io)
+{}
 
-  for (int i = 0; i < conn_pool_.capacity(); ++i)
-    conn_pool_.push_back(std::make_unique<connection>(io));
-}
-
-bool redis_client::is_connected() const
-{ return is_connected_; }
-
+bool redis_client::is_connected() const noexcept
+{ return conn_.is_connected(); }
 
 void redis_client::disconnect() {
-  for(auto &conn : conn_pool_)
-    conn->disconnect();
+  conn_.disconnect();
 }
 
 void redis_client::set(const string& key, const string& value, reply_cb_t reply) {
@@ -58,10 +52,9 @@ void redis_client::ping(reply_cb_t reply) {
   send({"ping"}, reply);
 }
 
-//TODO: wtf?! doesnt make sense with multiple connections!
-// void select(uint catalog, reply_cb_t&& reply) {
-//   send({"select", std::to_string(catalog)}, reply);
-// }
+void redis_client::select(uint catalog, reply_cb_t&& reply) {
+  send({"select", std::to_string(catalog)}, reply);
+}
 
 void redis_client::publish(const string& channel, const string& msg, reply_cb_t&& reply) {
   send({"publish", channel, msg}, reply);
@@ -77,33 +70,9 @@ redis_client::sort(const string& hash_name, std::vector<string>&& fields, reply_
   send({"sort " + hash_name + " by nosort",  req}, reply);
 }
 
-
-void redis_client::commit_pipeline() {
-  string buffer;
-  std::swap(pipeline_buffer_, buffer);
-  std::vector<reply_cb_t> cbs;
-  pipelined_cbs_.swap(cbs);
-
-  is_connected_ = get_connection().pipelined_send(std::move(buffer), std::move(cbs));
-  if (!is_connected_) {
-    disconnect();
-    throw connect_exception();
-  }
-}
-
-redis_client& redis_client::pipeline_on() {
-  pipelined_state_ = true;
-  return *this;
-}
-
-redis_client& redis_client::pipeline_off() {
-  pipelined_state_ = false;
-  return *this;
-}
-
-void redis_client::send(const std::vector<string>&& elems, const reply_cb_t& reply)
+void redis_client::send(std::vector<string>&& elems, const reply_cb_t& reply)
 {
-  if (!is_connected_)
+  if (!is_connected())
     throw connect_exception();
 
   string cmd;
@@ -112,45 +81,7 @@ void redis_client::send(const std::vector<string>&& elems, const reply_cb_t& rep
 
   cmd += "\r\n";
 
-  if (!pipelined_state_) {
-    is_connected_ = get_connection().send(std::move(cmd), reply);
-    if(!is_connected_) {
-      disconnect();
-      throw connect_exception();
-    }
-    return;
-  }
-
-  pipeline_buffer_ += cmd;
-  pipelined_cbs_.push_back(std::move(reply));
-}
-
-
-connection& redis_client::get_connection()
-{
-  if (con_rr_ctr_ == conn_pool_.size())
-    con_rr_ctr_ = 0;
-
-  return *conn_pool_[con_rr_ctr_++];
-}
-
-void redis_client::check_conn_connected(const connect_cb_t& handler, bool res)
-{
-  if (++connected_called_ != conn_pool_.size())
-    return;
-
-  bool val = true;
-  for(auto &con : conn_pool_)
-    val &= con->is_connected();
-
-  if (!val) {
-    for(auto &con : conn_pool_)
-      con->disconnect();
-  }
-
-  connected_called_ = 0;
-  is_connected_ = val;
-  return handler(val);
+  conn_.send(std::move(cmd), reply);
 }
 
 }

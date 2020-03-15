@@ -16,7 +16,7 @@ struct monitor_test
 
   monitor_test(asio::io_context &loop, int n = 100)
     : my_monitor(loop),
-      my_redis(loop, 2),
+      my_redis(loop),
       n_ping(n)
   {
     start();
