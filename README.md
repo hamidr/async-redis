@@ -1,3 +1,4 @@
+### **Retired** _in favor_ of https://github.com/boostorg/redis
 # async-redis
 An async redis library with sentinel support based on (libevpp|ASIO).
 
